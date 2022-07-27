@@ -271,6 +271,324 @@ z.init = as.matrix(cjs.init(ch, fc))
 
 ```
 
+
+```{r mixed effects time sex site weight model text}
+
+SSL_CJS <- nimbleCode({
+
+# Priors and constraints
+  for (i in 1:n_ind) { 
+    for (t in 1:(n_occasions - 1)) {
+      logit(phiP[i,t]) <- mu.P + b.sexP[sex[i]] + b.massP*mass[i] + epsP[t] + b.siteP[site[i]]
+      logit(p1[i,t]) <- mu.p1 + eps.p1[t]
+    } #t 
+    
+    for (t in 2:(n_occasions-1)) {
+      logit(phi1[i,t]) <- mu.1 + b.sex1[sex[i]] + b.mass*mass[i] + eps1[t] +b.site1[site[i]]
+      logit(p2[i,t]) <- mu.p2  + eps.p2[t]
+    }
+    
+    for (t in 3:(n_occasions-1)) {
+      logit(phi2[i,t]) <- mu.2 + b.sex2[sex[i]] + eps2[t] + b.site2[site[i]]
+      logit(p3[i,t]) <- mu.p3 + eps.pJ[t]
+    }
+    
+    for (t in 4:(n_occasions-1)) { 
+      logit(phi3[i,t]) <- mu.3 + b.sex3[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(p4[i,t]) <- mu.p4 + eps.pJ[t]
+    } #t psi
+    
+    for (t in 5:(n_occasions-1)) {
+      logit(phi4[i,t]) <- mu.4 + b.sex4[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(p5[i,t]) <- mu.p5 + eps.pJ[t]
+    } #t 
+    
+    for (t in 6:(n_occasions-1)) {  
+      logit(phi5[i,t]) <- mu.5 + b.sex5[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(p6[i,t]) <- mu.p6 + eps.pJ[t]
+    } #t 
+    
+    for (t in 7:(n_occasions-1)) {  
+      logit(phi6[i,t]) <- mu.6 + b.sex6[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(p7[i,t]) <- mu.p7 + eps.pA[t]
+    } #t 
+    
+    for (t in 8:(n_occasions-1)) {  
+      logit(phi7[i,t]) <- mu.7 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
+      logit(p8[i,t]) <- mu.p8 + eps.pA[t]
+    } #t 
+    
+    for (t in 9:(n_occasions-1)) {  
+      logit(phi8[i,t]) <- mu.8 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
+      logit(p9[i,t]) <- mu.p9 + eps.pA[t]
+    } #t 
+    
+    for (t in 10:(n_occasions-1)) {  
+      logit(phi9[i,t]) <- mu.9 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
+      logit(pA[i,t]) <- mu.pA + eps.pA[t]
+    } #t 
+    
+    for (t in 11:(n_occasions-1)) {  
+      logit(phiA[i,t]) <- mu.A + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
+    } #t 
+    
+  } #ind
+  
+  for (t in 1:(n_occasions - 1)) {
+      epsP[t] ~ dnorm(0, sd = sigmaP)
+      eps.p1[t] ~ dnorm(0, sd = sigma.p1)
+    } #t 
+    
+    for (t in 2:(n_occasions-1)) {
+      eps1[t] ~ dnorm(0, sd = sigma1)
+      eps.p2[t] ~ dnorm(0, sd = sigma.p2)
+    }
+    
+    for (t in 3:(n_occasions-1)) {
+      eps2[t] ~ dnorm(0, sd = sigma2)
+      eps.pJ[t] ~ dnorm(0, sd = sigma.pJ)
+    }
+    
+    for (t in 4:(n_occasions-1)) { 
+      epsJ[t] ~ dnorm(0, sd = sigmaJ)
+    } #t 
+    
+    for (t in 7:(n_occasions-1)) {  
+      eps.pA[t] ~ dnorm(0, sd = sigma.pA)
+    } #t 
+  
+    for (t in 8:(n_occasions-1)) {  
+      epsA[t] ~ dnorm(0, sd = sigmaA)
+    } #t 
+    
+   
+  
+### Priors
+    #p
+    mu.p1 <- log(int.p1/(1 - int.p1))
+    mu.p2 <- log(int.p2/(1 - int.p2))
+    mu.p3 <- log(int.p3/(1 - int.p3))
+    mu.p4 <- log(int.p4/(1 - int.p4))
+    mu.p5 <- log(int.p5/(1 - int.p5))
+    mu.p6 <- log(int.p6/(1 - int.p6))
+    mu.p7 <- log(int.p7/(1 - int.p7))
+    mu.p8 <- log(int.p8/(1 - int.p8))
+    mu.p9 <- log(int.p9/(1 - int.p9))
+    mu.pA <- log(int.pA/(1 - int.pA))
+
+    int.p1 ~ dunif(0,1)
+    int.p2 ~ dunif(0,1)
+    int.p3 ~ dunif(0,1)
+    int.p4 ~ dunif(0,1)
+    int.p5 ~ dunif(0,1)
+    int.p6 ~ dunif(0,1)
+    int.p7 ~ dunif(0,1)
+    int.p8 ~ dunif(0,1)
+    int.p9 ~ dunif(0,1)
+    int.pA ~ dunif(0,1)
+
+    mu.P <- log(int.phiP/(1 - int.phiP))
+    mu.1 <- log(int.phi1/(1 - int.phi1))
+    mu.2 <- log(int.phi2/(1 - int.phi2))
+    mu.3 <- log(int.phi3/(1 - int.phi3))
+    mu.4 <- log(int.phi4/(1 - int.phi4))
+    mu.5 <- log(int.phi5/(1 - int.phi5))
+    mu.6 <- log(int.phi6/(1 - int.phi6))
+    mu.7 <- log(int.phi7/(1 - int.phi7))
+    mu.8 <- log(int.phi8/(1 - int.phi8))
+    mu.9 <- log(int.phi9/(1 - int.phi9))
+    mu.A <- log(int.phiA/(1 - int.phiA))
+    
+    int.phiP ~ dunif(0,1)
+    int.phi1 ~ dunif(0,1)
+    int.phi2 ~ dunif(0,1)
+    int.phi3 ~ dunif(0,1)
+    int.phi4 ~ dunif(0,1)
+    int.phi5 ~ dunif(0,1)
+    int.phi6 ~ dunif(0,1)
+    int.phi7 ~ dunif(0,1)
+    int.phi8 ~ dunif(0,1)
+    int.phi9 ~ dunif(0,1)
+    int.phiA ~ dunif(0,1)
+    
+    b.sexP[1] <- 0
+    b.sex1[1] <- 0
+    b.sex2[1] <- 0
+    b.sex3[1] <- 0
+    b.sex4[1] <- 0
+    b.sex5[1] <- 0
+    b.sex6[1] <- 0
+    b.sexA[1] <- 0
+    b.sexP[2] ~ dnorm(0, sd = s.sexP)
+    b.sex1[2] ~ dnorm(0, sd = s.sex1)
+    b.sex2[2] ~ dnorm(0, sd = s.sex2)
+    b.sex3[2] ~ dnorm(0, sd = s.sex3)
+    b.sex4[2] ~ dnorm(0, sd = s.sex4)
+    b.sex5[2] ~ dnorm(0, sd = s.sex5)
+    b.sex6[2] ~ dnorm(0, sd = s.sex6)
+    b.sexA[2] ~ dnorm(0, sd = s.sexA)
+    s.sexP ~ dexp(1)
+    s.sex1 ~ dexp(1)
+    s.sex2 ~ dexp(1)
+    s.sex3 ~ dexp(1)
+    s.sex4 ~ dexp(1)
+    s.sex5 ~ dexp(1)
+    s.sex6 ~ dexp(1)
+    s.sexA ~ dexp(1)
+    
+    b.massP ~ dnorm(0, sd = s.mass)
+    b.mass ~ dnorm(0, sd = s.mass)
+    s.mass ~ dexp(1)
+    
+    b.siteP[2] <- 0
+    b.site1[2] <- 0
+    b.site2[2] <- 0
+    b.siteJ[2] <- 0
+    b.siteA[2] <- 0
+    b.siteP[1] ~ dnorm(0, sd = s.siteP)
+    b.site1[1] ~ dnorm(0, sd = s.site1)
+    b.site2[1] ~ dnorm(0, sd = s.site2)
+    b.siteJ[1] ~ dnorm(0, sd = s.siteJ)
+    b.siteA[1] ~ dnorm(0, sd = s.siteA)
+    s.siteP ~ dexp(1)
+    s.site1 ~ dexp(1)
+    s.site2 ~ dexp(1)
+    s.siteJ ~ dexp(1)
+    s.siteA ~ dexp(1)
+    sigmaP ~ dexp(1)
+    sigma1 ~ dexp(1)
+    sigma2 ~ dexp(1)
+    sigmaJ ~ dexp(1)
+    sigmaA ~ dexp(1)
+    sigma.p1 ~ dexp(1)
+    sigma.p2 ~ dexp(1)
+    sigma.pJ ~ dexp(1)
+    sigma.pA ~ dexp(1)
+    
+    #backtransformed probability scale
+    for (t in 1:(n_occasions-1)){
+      p1.prob[t] <- 1/(1+exp(-(mu.p1 + eps.p1[t])))
+      p2.prob[t] <- 1/(1+exp(-(mu.p2 + eps.p2[t])))
+      p3.prob[t] <- 1/(1+exp(-(mu.p3 + eps.pJ[t])))
+      p4.prob[t] <- 1/(1+exp(-(mu.p4 + eps.pJ[t])))
+      p5.prob[t] <- 1/(1+exp(-(mu.p5 + eps.pJ[t])))
+      p6.prob[t] <- 1/(1+exp(-(mu.p6 + eps.pJ[t])))
+      p7.prob[t] <- 1/(1+exp(-(mu.p7 + eps.pA[t])))
+      p8.prob[t] <- 1/(1+exp(-(mu.p8 + eps.pA[t])))
+      p9.prob[t] <- 1/(1+exp(-(mu.p9 + eps.pA[t])))
+      pA.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
+      
+    for (r in 1:2) {
+      phiP.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.siteP[r])))
+      phiPM.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.sexP[2] + b.siteP[r])))
+      phi1.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.site1[r])))
+      phi1M.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.sex1[2] + b.site1[r])))
+      phi2.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.site2[r])))
+      phi2M.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.sex2[2] + b.site2[r])))
+      phi3.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.siteJ[r])))
+      phi3M.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.sex3[2] + b.siteJ[r])))
+      phi4.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.siteJ[r])))
+      phi4M.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.sex4[2] + b.siteJ[r])))
+      phi5.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.siteJ[r])))
+      phi5M.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.sex5[2] + b.siteJ[r])))
+      phi6.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.siteJ[r])))
+      phi6M.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.sex6[2] + b.siteJ[r])))
+      phi7.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.siteA[r])))
+      phi7M.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.sexA[2] + b.siteA[r])))
+      phi8.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.siteA[r])))
+      phi8M.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.sexA[2] + b.siteA[r])))
+      phi9.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.siteA[r])))
+      phi9M.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.sexA[2] + b.siteA[r])))
+      phiA.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
+      phiAM.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
+    }
+    } #t
+  
+    #likelihood
+for (i in 1:n_ind) { #females
+    z[i, fc[i]:fc[i]] <- 1 #pups at first capture
+
+for (t in (fc[i] + 1):n_occasions) {
+      z[i,t] ~ dcat(state_probs[i,t-1,1:12])
+      y[i,t] ~ dcat(event_probs[i,t,1:12])
+      
+    state_probs[i,t-1,1:12] <- getPHI(z = z[i,t-1], 
+                                      phiP = phiP[i,t-1], phi1 = phi1[i,t-1], phi2 = phi2[i,t-1], 
+                                      phi3 = phi3[i,t-1], phi4 = phi4[i,t-1], phi5 = phi5[i,t-1], 
+                                      phi6 = phi6[i,t-1], phi7 = phi7[i,t-1], phi8 = phi8[i,t-1],
+                                      phi9 = phi9[i,t-1], phiA = phiA[i,t-1])
+    
+    event_probs[i,t,1:12] <- getP(z = z[i,t], 
+                                    p1 = p1[i,t-1], p2 = p2[i,t-1], p3 = p3[i,t-1], 
+                                    p4 = p4[i,t-1], p5 = p5[i,t-1], p6 = p6[i,t-1],
+                                    p7 = p7[i,t-1], p8 = p8[i,t-1], p9 = p9[i,t-1],
+                                    pA = pA[i,t-1])
+    } #t likelihood 
+} #i likelihood 
+    
+}) # mod   
+
+##### run model ####
+nim.data <- list(y = y)
+
+nim.constants <- list(n_ind = dim(ch)[1], n_occasions = n_occasions,
+                      mass = mass, site = rook, sex = sex,
+                      fc = fc)
+
+inits <- list(int.phiP = 0.9, int.phi1 = 0.9, int.phi2 = 0.9, int.phi3 = 0.9, int.phiA = 0.9, 
+              int.phi4 = 0.9, int.phi5 = 0.9, int.phi6 = 0.9, int.phi7 = 0.9, int.phi8 = 0.9, int.phi9 = 0.9, 
+              mu.p1 = qlogis(0.7), mu.p2 = qlogis(0.6), mu.p3 = qlogis(0.6),
+              mu.p4 = qlogis(0.6), mu.p5 = qlogis(0.4), mu.p6 = qlogis(0.6), mu.p7 = qlogis(0.6),
+              mu.p8 = qlogis(0.4), mu.p9 = qlogis(0.6), mu.pA = qlogis(0.6),
+              b.massP = 0, b.mass = 0, b.sexP = 0, b.sex1 = 0, b.sex2 = 0, b.sex3 = 0, b.sex4 = 0, 
+              b.sex5 = 0, b.sex6 = 0, b.sexA = 0, b.siteP = 0, b.site1 = 0, b.site2 = 0, b.siteJ = 0, b.siteA = 0,
+              z = z.init)
+
+### parameters
+params <- c('int.p1', 'int.p2', 'int.p3', 'int.p4', 'int.p5', 'int.p6', 'int.p7', 'int.p8', 
+            'int.p9', 'int.pA', 'mu.P', 'mu.1', 'mu.2', 'mu.3', 'mu.4', 'mu.5', 'mu.6',
+            'mu.7', 'mu.8', 'mu.9', 'mu.A',
+            'p1.prob', 'p2.prob', 'p3.prob', 'p4.prob', 'p5.prob', 'p6.prob',
+            'p7.prob', 'p8.prob', 'p9.prob', 'pA.prob',
+            'int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phi4', 'int.phi5', 
+            'int.phi6', 'int.phi7', 'int.phi8', 'int.phi9', 'int.phiA',
+            'phiP.prob', 'phiPM.prob', 'phi1.prob', 'phi1M.prob', 'phi2.prob', 'phi2M.prob',
+            'phi3.prob', 'phi3M.prob', 'phi4.prob', 'phi4M.prob', 'phi5.prob', 'phi5M.prob',
+            'phi6.prob', 'phi6M.prob', 'phi7.prob', 'phi7M.prob', 'phi8.prob', 'phi8M.prob',
+            'phi9.prob', 'phi9M.prob', 'phiA.prob', 'phiAM.prob',
+            'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sex3', 'b.sex4', 'b.sex5', 'b.sex6',
+            'b.sexA', 'b.siteP', 'b.site1', 'b.site2', 'b.siteJ', 'b.siteA',
+            'epsP', 'eps1', 'eps2', 'epsJ', 'epsA',
+            'z')
+
+### run model
+# n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
+n.iter = 20000; n.chains = 3; n.burnin = 10000; nthin = 3; nAdapt = 20
+
+
+start <- Sys.time()
+
+Rmodel <- nimbleModel(code = SSL_CJS, 
+                      constants = nim.constants, data = nim.data, 
+                      calculate = F, check = F, inits = inits)
+
+conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
+                      thin = nthin, useConjugacy = FALSE, enableWAIC = TRUE)
+
+Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, inits = inits,
+                 setSeed = FALSE, progressBar = TRUE,
+               WAIC = TRUE,
+               samplesAsCodaMCMC = TRUE)
+
+saveRDS(out, here::here('results', 'out_ME.RDS')) 
+
+```
+
+
 ```{r null model text}
 
 SSL_CJS <- nimbleCode({
@@ -691,310 +1009,7 @@ saveRDS(out, here::here('results', 'out_FE.RDS'))
 
 ```
 
-```{r mixed effects time sex site weight model text}
-
-SSL_CJS <- nimbleCode({
-
-# Priors and constraints
-  for (i in 1:n_ind) { 
-    for (t in 1:(n_occasions - 1)) {
-      logit(phiP[i,t]) <- mu.P + b.sexP[sex[i]] + b.massP*mass[i] + epsP[t] + b.siteP[site[i]]
-      logit(p1[i,t]) <- mean.p1 + eps.p1[t]
-    } #t 
-    
-    for (t in 2:(n_occasions-1)) {
-      logit(phi1[i,t]) <- mu.1 + b.sex1[sex[i]] + b.mass*mass[i] + eps1[t] +b.site1[site[i]]
-      logit(p2[i,t]) <- mean.p2  + eps.p2[t]
-    }
-    
-    for (t in 3:(n_occasions-1)) {
-      logit(phi2[i,t]) <- mu.2 + b.sex2[sex[i]] + eps2[t] + b.site2[site[i]]
-      logit(p3[i,t]) <- mean.p3 + eps.pJ[t]
-    }
-    
-    for (t in 4:(n_occasions-1)) { 
-      logit(phi3[i,t]) <- mu.3 + b.sex3[sex[i]] + epsJ[t] + b.siteJ[site[i]]
-      logit(p4[i,t]) <- mean.p4 + eps.pJ[t]
-    } #t psi
-    
-    for (t in 5:(n_occasions-1)) {
-      logit(phi4[i,t]) <- mu.4 + b.sex4[sex[i]] + epsJ[t] + b.siteJ[site[i]]
-      logit(p5[i,t]) <- mean.p5 + eps.pJ[t]
-    } #t 
-    
-    for (t in 6:(n_occasions-1)) {  
-      logit(phi5[i,t]) <- mu.5 + b.sex5[sex[i]] + epsJ[t] + b.siteJ[site[i]]
-      logit(p6[i,t]) <- mean.p6 + eps.pJ[t]
-    } #t 
-    
-    for (t in 7:(n_occasions-1)) {  
-      logit(phi6[i,t]) <- mu.6 + b.sex6[sex[i]] + epsJ[t] + b.siteJ[site[i]]
-      logit(p7[i,t]) <- mean.p7 + eps.pA[t]
-    } #t 
-    
-    for (t in 8:(n_occasions-1)) {  
-      logit(phi7[i,t]) <- mu.7 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
-      logit(p8[i,t]) <- mean.p8 + eps.pA[t]
-    } #t 
-    
-    for (t in 9:(n_occasions-1)) {  
-      logit(phi8[i,t]) <- mu.8 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
-      logit(p9[i,t]) <- mean.p9 + eps.pA[t]
-    } #t 
-    
-    for (t in 10:(n_occasions-1)) {  
-      logit(phi9[i,t]) <- mu.9 + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
-      logit(pA[i,t]) <- mean.pA + eps.pA[t]
-    } #t 
-    
-    for (t in 11:(n_occasions-1)) {  
-      logit(phiA[i,t]) <- mu.A + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
-    } #t 
-    
-  } #ind
-  
-  for (t in 1:(n_occasions - 1)) {
-      epsP[t] ~ dnorm(0, sd = sigmaP)
-      eps.p1[t] ~ dnorm(0, sd = sigma.p1)
-    } #t 
-    
-    for (t in 2:(n_occasions-1)) {
-      eps1[t] ~ dnorm(0, sd = sigma1)
-      eps.p2[t] ~ dnorm(0, sd = sigma.p2)
-    }
-    
-    for (t in 3:(n_occasions-1)) {
-      eps2[t] ~ dnorm(0, sd = sigma2)
-      eps.pJ[t] ~ dnorm(0, sd = sigma.pJ)
-    }
-    
-    for (t in 4:(n_occasions-1)) { 
-      epsJ[t] ~ dnorm(0, sd = sigmaJ)
-    } #t 
-    
-    for (t in 7:(n_occasions-1)) {  
-      eps.pA[t] ~ dnorm(0, sd = sigma.pA)
-    } #t 
-  
-    for (t in 8:(n_occasions-1)) {  
-      epsA[t] ~ dnorm(0, sd = sigmaA)
-    } #t 
-    
-   
-  
-### Priors
-    #p
-    mean.p1 <- log(int.p1/(1 - int.p1))
-    mean.p2 <- log(int.p2/(1 - int.p2))
-    mean.p3 <- log(int.p3/(1 - int.p3))
-    mean.p4 <- log(int.p4/(1 - int.p4))
-    mean.p5 <- log(int.p5/(1 - int.p5))
-    mean.p6 <- log(int.p6/(1 - int.p6))
-    mean.p7 <- log(int.p7/(1 - int.p7))
-    mean.p8 <- log(int.p8/(1 - int.p8))
-    mean.p9 <- log(int.p9/(1 - int.p9))
-    mean.pA <- log(int.pA/(1 - int.pA))
-
-    int.p1 ~ dunif(0,1)
-    int.p2 ~ dunif(0,1)
-    int.p3 ~ dunif(0,1)
-    int.p4 ~ dunif(0,1)
-    int.p5 ~ dunif(0,1)
-    int.p6 ~ dunif(0,1)
-    int.p7 ~ dunif(0,1)
-    int.p8 ~ dunif(0,1)
-    int.p9 ~ dunif(0,1)
-    int.pA ~ dunif(0,1)
-
-    mu.P <- log(int.phiP/(1 - int.phiP))
-    mu.1 <- log(int.phi1/(1 - int.phi1))
-    mu.2 <- log(int.phi2/(1 - int.phi2))
-    mu.3 <- log(int.phi3/(1 - int.phi3))
-    mu.4 <- log(int.phi4/(1 - int.phi4))
-    mu.5 <- log(int.phi5/(1 - int.phi5))
-    mu.6 <- log(int.phi6/(1 - int.phi6))
-    mu.7 <- log(int.phi7/(1 - int.phi7))
-    mu.8 <- log(int.phi8/(1 - int.phi8))
-    mu.9 <- log(int.phi9/(1 - int.phi9))
-    mu.A <- log(int.phiA/(1 - int.phiA))
-    
-    int.phiP ~ dunif(0,1)
-    int.phi1 ~ dunif(0,1)
-    int.phi2 ~ dunif(0,1)
-    int.phi3 ~ dunif(0,1)
-    int.phi4 ~ dunif(0,1)
-    int.phi5 ~ dunif(0,1)
-    int.phi6 ~ dunif(0,1)
-    int.phi7 ~ dunif(0,1)
-    int.phi8 ~ dunif(0,1)
-    int.phi9 ~ dunif(0,1)
-    int.phiA ~ dunif(0,1)
-    
-    b.sexP[1] <- 0
-    b.sex1[1] <- 0
-    b.sex2[1] <- 0
-    b.sex3[1] <- 0
-    b.sex4[1] <- 0
-    b.sex5[1] <- 0
-    b.sex6[1] <- 0
-    b.sexA[1] <- 0
-    b.sexP[2] ~ dnorm(0, sd = s.sexP)
-    b.sex1[2] ~ dnorm(0, sd = s.sex1)
-    b.sex2[2] ~ dnorm(0, sd = s.sex2)
-    b.sex3[2] ~ dnorm(0, sd = s.sex3)
-    b.sex4[2] ~ dnorm(0, sd = s.sex4)
-    b.sex5[2] ~ dnorm(0, sd = s.sex5)
-    b.sex6[2] ~ dnorm(0, sd = s.sex6)
-    b.sexA[2] ~ dnorm(0, sd = s.sexA)
-    s.sexP ~ dexp(1)
-    s.sex1 ~ dexp(1)
-    s.sex2 ~ dexp(1)
-    s.sex3 ~ dexp(1)
-    s.sex4 ~ dexp(1)
-    s.sex5 ~ dexp(1)
-    s.sex6 ~ dexp(1)
-    s.sexA ~ dexp(1)
-    
-    b.massP ~ dnorm(0, sd = s.mass)
-    b.mass ~ dnorm(0, sd = s.mass)
-    s.mass ~ dexp(1)
-    
-    b.siteP[2] <- 0
-    b.site1[2] <- 0
-    b.site2[2] <- 0
-    b.siteJ[2] <- 0
-    b.siteA[2] <- 0
-    b.siteP[1] ~ dnorm(0, sd = s.siteP)
-    b.site1[1] ~ dnorm(0, sd = s.site1)
-    b.site2[1] ~ dnorm(0, sd = s.site2)
-    b.siteJ[1] ~ dnorm(0, sd = s.siteJ)
-    b.siteA[1] ~ dnorm(0, sd = s.siteA)
-    s.siteP ~ dexp(1)
-    s.site1 ~ dexp(1)
-    s.site2 ~ dexp(1)
-    s.siteJ ~ dexp(1)
-    s.siteA ~ dexp(1)
-    sigmaP ~ dexp(1)
-    sigma1 ~ dexp(1)
-    sigma2 ~ dexp(1)
-    sigmaJ ~ dexp(1)
-    sigmaA ~ dexp(1)
-    sigma.p1 ~ dexp(1)
-    sigma.p2 ~ dexp(1)
-    sigma.pJ ~ dexp(1)
-    sigma.pA ~ dexp(1)
-    
-    for (t in 1:(n_occasions-1)){
-    for (r in 1:2) {
-      phiP.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.siteP[r])))
-      phiPM.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.sexP[2] + b.siteP[r])))
-      phi1.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.site1[r])))
-      phi1M.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.sex1[2] + b.site1[r])))
-      phi2.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.site2[r])))
-      phi2M.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.sex2[2] + b.site2[r])))
-      phi3.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.siteJ[r])))
-      phi3M.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.sex3[2] + b.siteJ[r])))
-      phi4.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.siteJ[r])))
-      phi4M.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.sex4[2] + b.siteJ[r])))
-      phi5.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.siteJ[r])))
-      phi5M.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.sex5[2] + b.siteJ[r])))
-      phi6.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.siteJ[r])))
-      phi6M.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.sex6[2] + b.siteJ[r])))
-      phi7.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.siteA[r])))
-      phi7M.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phi8.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.siteA[r])))
-      phi8M.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phi9.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.siteA[r])))
-      phi9M.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phiA.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
-      phiAM.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
-    }
-    } #t
-  
-    #likelihood
-for (i in 1:n_ind) { #females
-    z[i, fc[i]:fc[i]] <- 1 #pups at first capture
-
-for (t in (fc[i] + 1):n_occasions) {
-      z[i,t] ~ dcat(state_probs[i,t-1,1:12])
-      y[i,t] ~ dcat(event_probs[i,t,1:12])
-      
-    state_probs[i,t-1,1:12] <- getPHI(z = z[i,t-1], 
-                                      phiP = phiP[i,t-1], phi1 = phi1[i,t-1], phi2 = phi2[i,t-1], 
-                                      phi3 = phi3[i,t-1], phi4 = phi4[i,t-1], phi5 = phi5[i,t-1], 
-                                      phi6 = phi6[i,t-1], phi7 = phi7[i,t-1], phi8 = phi8[i,t-1],
-                                      phi9 = phi9[i,t-1], phiA = phiA[i,t-1])
-    
-    event_probs[i,t,1:12] <- getP(z = z[i,t], 
-                                    p1 = p1[i,t-1], p2 = p2[i,t-1], p3 = p3[i,t-1], 
-                                    p4 = p4[i,t-1], p5 = p5[i,t-1], p6 = p6[i,t-1],
-                                    p7 = p7[i,t-1], p8 = p8[i,t-1], p9 = p9[i,t-1],
-                                    pA = pA[i,t-1])
-    } #t likelihood 
-} #i likelihood 
-    
-}) # mod   
-
-##### run model ####
-nim.data <- list(y = y)
-
-nim.constants <- list(n_ind = dim(ch)[1], n_occasions = n_occasions,
-                      mass = mass, site = rook, sex = sex,
-                      fc = fc)
-
-inits <- list(int.phiP = 0.9, int.phi1 = 0.9, int.phi2 = 0.9, int.phi3 = 0.9, int.phiA = 0.9, 
-              int.phi4 = 0.9, int.phi5 = 0.9, int.phi6 = 0.9, int.phi7 = 0.9, int.phi8 = 0.9, int.phi9 = 0.9, 
-              mean.p1 = qlogis(0.7), mean.p2 = qlogis(0.6), mean.p3 = qlogis(0.6),
-              mean.p4 = qlogis(0.6), mean.p5 = qlogis(0.4), mean.p6 = qlogis(0.6), mean.p7 = qlogis(0.6),
-              mean.p8 = qlogis(0.4), mean.p9 = qlogis(0.6), mean.pA = qlogis(0.6),
-              b.massP = 0, b.mass = 0, b.sexP = 0, b.sex1 = 0, b.sex2 = 0, b.sex3 = 0, b.sex4 = 0, 
-              b.sex5 = 0, b.sex6 = 0, b.sexA = 0, b.siteP = 0, b.site1 = 0, b.site2 = 0, b.siteJ = 0, b.siteA = 0,
-              z = z.init)
-
-### parameters
-params <- c('int.p1', 'int.p2', 'int.p3', 'int.p4', 'int.p5', 'int.p6', 'int.p7', 'int.p8', 
-            'int.p9', 'int.pA', 'mu.P', 'mu.1', 'mu.2', 'mu.3', 'mu.4', 'mu.5', 'mu.6',
-            'mu.7', 'mu.8', 'mu.9', 'mu.A',
-            'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'pA',
-            'int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phi4', 'int.phi5', 
-            'int.phi6', 'int.phi7', 'int.phi8', 'int.phi9', 'int.phiA',
-            'phiP.prob', 'phiPM.prob', 'phi1.prob', 'phi1M.prob', 'phi2.prob', 'phi2M.prob',
-            'phi3.prob', 'phi3M.prob', 'phi4.prob', 'phi4M.prob', 'phi5.prob', 'phi5M.prob',
-            'phi6.prob', 'phi6M.prob', 'phi7.prob', 'phi7M.prob', 'phi8.prob', 'phi8M.prob',
-            'phi9.prob', 'phi9M.prob', 'phiA.prob', 'phiAM.prob',
-            'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sex3', 'b.sex4', 'b.sex5', 'b.sex6',
-            'b.sexA', 'b.siteP', 'b.site1', 'b.site2', 'b.siteJ', 'b.siteA',
-            'epsP', 'eps1', 'eps2', 'epsJ', 'epsA',
-            'z')
-
-### run model
-# n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
-n.iter = 20000; n.chains = 3; n.burnin = 10000; nthin = 3; nAdapt = 20
-
-
-start <- Sys.time()
-
-Rmodel <- nimbleModel(code = SSL_CJS, 
-                      constants = nim.constants, data = nim.data, 
-                      calculate = F, check = F, inits = inits)
-
-conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
-                      thin = nthin, useConjugacy = FALSE, enableWAIC = TRUE)
-
-Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
-Cmodel <- compileNimble(Rmodel)
-Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
-
-out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, inits = inits,
-                 setSeed = FALSE, progressBar = TRUE,
-               WAIC = TRUE,
-               samplesAsCodaMCMC = TRUE)
-
-saveRDS(out, here::here('results', 'out_ME.RDS')) 
-
-```
-
-```{r results}
+```{r results - phi}
 
 out <- readRDS(here::here('results', 'out_ME.RDS'))
 
@@ -1018,8 +1033,7 @@ pars <- c(sex.pars, mu.pars)
 
 mu.vals <- post_sum %>%
   filter(variable %in% mu.pars) %>%
-  transform(age = gsub('mu.', '', variable)) %>%
-  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) 
+  transform(age = gsub('mu.', '', variable)) 
 
 b.sex <- post_sum %>% filter(grepl('b.sex', variable) & med != 0) %>%
   transform(age = ifelse(grepl('sexP', variable), 'P', 
@@ -1030,24 +1044,33 @@ b.sex <- post_sum %>% filter(grepl('b.sex', variable) & med != 0) %>%
                                                      ifelse(grepl('sex5', variable), '5',
                                                             ifelse(grepl('sex6', variable), '6', 'A'))))))))
 
+#male back transformed values
 mean.phi.vals <- mu.vals %>%
-  merge(b.sex, by = 'age', suffixes = c('', '.sex')) %>%
-  transform(phi.med = 1/(1+exp(-(med + med.sex))),
-            phi.low = 1/(1+exp(-(lower + lower.sex))),
-            phi.up = 1/(1+exp(-(upper + upper.sex))))
+  merge(b.sex, by = 'age', suffixes = c('', '.sex'), all = T) %>%
+  #fill b.sex for older age intercepts
+  transform(med.sex = ifelse(is.na(med.sex), b.sex[b.sex$age == 'A', 'med'], med.sex),
+            lower.sex = ifelse(is.na(lower.sex), b.sex[b.sex$age == 'A', 'lower'], lower.sex),
+            upper.sex = ifelse(is.na(upper.sex), b.sex[b.sex$age == 'A', 'upper'], upper.sex)) %>%
+  transform(med = 1/(1+exp(-(med + med.sex))),
+            lower = 1/(1+exp(-(lower + lower.sex))),
+            upper = 1/(1+exp(-(upper + upper.sex)))) %>%
+  transform(sex = 'Male') %>%
+  dplyr::select(c(med, lower, upper, variable, age, sex)) %>%
+  bind_rows(
+    post_sum %>%
+  filter(grepl('int.phi', variable)) %>%
+  transform(age = gsub('int.phi', '', variable), sex = 'Female')) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) 
 
-ggplot(mean.phi.vals, aes(age, phi.med)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = phi.low, ymax = phi.up))
-
-p.vals <- post_sum %>%
-  filter(!grepl('phi', variable) & grepl('int.p', variable)) %>%
-  transform(age = gsub('int.p', '', variable)) %>%
-  transform(age = factor(age, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A')))
-
-ggplot(p.vals, aes(age, med)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = lower, ymax = upper))
+ggplot(mean.phi.vals, aes(age, med, col = sex, group = sex)) +
+  geom_point(position = position_dodge(0.5)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, position = position_dodge(0.5)) +
+  xlab('') + ylab(expression(paste('Predicted survival probability ',  '(', phi, ')'))) +
+  ggtitle('') +
+  plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
+             plot.title = element_text(hjust = 0.5)) +
+  guides(color = guide_legend("", nrow = 1, byrow = T)) +
+  scale_color_manual(values = rainbow2[c(2,5)], name = '') 
 
 #temporal variance
 phi.vals <- post_sum %>%
@@ -1118,7 +1141,8 @@ ggplot(phi.vals %>% filter(region == 1),
   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
   scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
 
-ggplot(phi.vals %>% filter(region == 1 & age %in% c('P', '1', '2')),
+#just young individuals
+ggplot(phi.vals %>% filter(region == 1 & age %in% c('P', '1', '2') & sex == 'Female'),
        aes(year, med, color = factor(sex), group = factor(sex))) +
   geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
                 width = 0.5, show.legend = F) +
@@ -1133,6 +1157,35 @@ ggplot(phi.vals %>% filter(region == 1 & age %in% c('P', '1', '2')),
   guides(color = guide_legend("", nrow = 1, byrow = T)) +
   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
   scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
+
+
+```
+
+```{r results - p}
+
+#mean detection probabilities
+p.vals <- post_sum %>%
+  filter(!grepl('phi', variable) & grepl('int.p', variable)) %>%
+  transform(age = gsub('int.p', '', variable)) %>%
+  transform(age = factor(age, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A')))
+
+ggplot(p.vals, aes(age, med)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  xlab('') + ylab('Detection probability') +
+  ggtitle('') +
+  plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
+             plot.title = element_text(hjust = 0.5)) +
+  guides(color = guide_legend("", nrow = 1, byrow = T)) +
+  scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') 
+
+#temporal variance
+p.pars <- c('p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'pA')
+
+p.pars <- all_pars[which(variable %in% p.pars)]
+
+p.probs <- post_sum %>% filter(grepl('p1', variable))
+
 
 
 ```

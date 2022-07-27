@@ -1,0 +1,274 @@
+---
+title: "SSL_FitureProof_sim"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE, message = F, warning = F)
+
+library(here) #v1.0.1
+library(dplyr) #v1.0.5
+library(nimble) #v0.12.1
+
+source(here::here('scripts', 'PlotTheme.R'))
+
+```
+
+```{r simulate}
+
+########################################
+######Multistate CJS Simulate and fit with jags
+######Code by Kery and Schaub 2012, section 9.2
+
+
+# Define mean survival, transitions, recapture, as well as number of occasions, states, observations and released individuals
+
+phiP <- 0.5; phi1 <- 0.55; phi2 <- 0.6; phi3 <- 0.65; phi4 <- 0.7
+phi5 <- 0.75; phi6 <- 0.8; phi7 <- 0.85; phi8 <- 0.9; phi9 <- 0.85; phiA <- 0.85
+
+pJ <- 0.7
+p1 <- 0.6; p2 <- 0.6; p3 <- pJ; p4 <- pJ; p5 <- pJ; p6 <- pJ
+pA <- 0.8
+
+
+n.occasions <- 10
+n.states <- 12
+n.obs <- 12
+
+marked <- matrix(0, ncol = n.states, nrow = n.occasions)
+marked[,1] <- c(10, 0, 10, 0, 10, 0, 10, 0, 10, 0)
+
+
+# Define matrices with survival, transition and recapture probabilities
+# These are 4-dimensional matrices, with 
+   # Dimension 1: state of departure
+   # Dimension 2: state of arrival
+   # Dimension 3: individual
+   # Dimension 4: time
+
+# 1. State process matrix
+totrel <- sum(marked)*(n.occasions-1)
+STATE <- array(NA, dim=c(n.states, n.states, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      STATE[,,i,t] <- matrix(c(
+      0,phiP,0,0,0,0,0,0,0,0,0,1-phiP,
+      0,0,phi1,0,0,0,0,0,0,0,0,1-phi1,
+      0,0,0,phi2,0,0,0,0,0,0,0,1-phi2,
+      0,0,0,0,phi3,0,0,0,0,0,0,1-phi3,
+      0,0,0,0,0,phi4,0,0,0,0,0,1-phi4,
+      0,0,0,0,0,0,phi5,0,0,0,0,1-phi5,
+      0,0,0,0,0,0,0,phi6,0,0,0,1-phi6,
+      0,0,0,0,0,0,0,0,phi7,0,0,1-phi7,
+      0,0,0,0,0,0,0,0,0,phi8,0,1-phi8,
+      0,0,0,0,0,0,0,0,0,0,phi9,1-phi9,
+      0,0,0,0,0,0,0,0,0,0,phiA,1-phiA,
+      0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# 2.Observation process matrix
+OBS <- array(NA, dim=c(n.states, n.obs, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      OBS[,,i,t] <- matrix(c(
+     1,0,0,0,0,0,0,0,0,0,0,0,
+     0,p1,0,0,0,0,0,0,0,0,0,1-p1,   #1yr      
+     0,0,p2,0,0,0,0,0,0,0,0,1-p2,   #2yr
+     0,0,0,p3,0,0,0,0,0,0,0,1-p3,   #3yr
+     0,0,0,0,p4,0,0,0,0,0,0,1-p4,   #4yr 
+     0,0,0,0,0,p5,0,0,0,0,0,1-p5,   #5yr           
+     0,0,0,0,0,0,p6,0,0,0,0,1-p6,   #6yr  
+     0,0,0,0,0,0,0,pA,0,0,0,1-pA,   #7yr  
+     0,0,0,0,0,0,0,0,pA,0,0,1-pA,   #8yr  
+     0,0,0,0,0,0,0,0,0,pA,0,1-pA,   #9yr  
+     0,0,0,0,0,0,0,0,0,0,pA,1-pA,   #pA
+     0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# Define function to simulate multistate capture-recapture data
+simul.ms <- function(STATE, OBS, marked, unobservable = NA){
+   # Unobservable: number of state that is unobservable
+   n.occasions <- dim(STATE)[4] + 1
+   CH <- CH.TRUE <- matrix(NA, ncol = n.occasions, nrow = sum(marked))
+   # Define a vector with the occasion of marking
+   mark.occ <- matrix(0, ncol = dim(STATE)[1], nrow = sum(marked))
+   g <- colSums(marked)
+   for (s in 1:dim(STATE)[1]){
+      if (g[s]==0) next  # To avoid error message if nothing to replace
+      mark.occ[(cumsum(g[1:s])-g[s]+1)[s]:cumsum(g[1:s])[s],s] <-
+      rep(1:n.occasions, marked[1:n.occasions,s])
+      } #s
+   for (i in 1:sum(marked)){
+      for (s in 1:dim(STATE)[1]){
+         if (mark.occ[i,s]==0) next
+         first <- mark.occ[i,s]
+         CH[i,first] <- s
+         CH.TRUE[i,first] <- s
+         } #s
+      for (t in (first+1):n.occasions){
+         # Multinomial trials for state transitions
+         if (first==n.occasions) next
+         state <- which(rmultinom(1, 1, STATE[CH.TRUE[i,t-1],,i,t-1])==1)
+         CH.TRUE[i,t] <- state
+         # Multinomial trials for observation process
+         event <- which(rmultinom(1, 1, OBS[CH.TRUE[i,t],,i,t-1])==1)
+         CH[i,t] <- event
+         } #t
+      } #i
+   # Replace the NA and the highest state number (dead) in the file by 0
+   CH[is.na(CH)] <- 0
+   CH[CH==dim(STATE)[1]] <- 0
+   CH[CH==unobservable] <- 0
+   id <- numeric(0)
+   for (i in 1:dim(CH)[1]){
+      z <- min(which(CH[i,]!=0))
+      ifelse(z==dim(CH)[2], id <- c(id,i), id <- c(id))
+      }
+   return(list(CH=CH[-id,], CH.TRUE=CH.TRUE[-id,]))
+   # CH: capture histories to be used
+   # CH.TRUE: capture histories with perfect observation
+   }
+
+# Execute function
+sim <- simul.ms(STATE, OBS, marked)
+CH <- sim$CH
+CH.TRUE <- sim$CH.TRUE
+
+# Compute vector with occasion of first capture
+get.first <- function(x) min(which(x!=0))
+f <- apply(CH, 1, get.first)
+
+# Recode CH matrix: note, a 0 is not allowed in WinBUGS!
+# 1 = seen alive in A, 2 = seen alive in B, 3 = not seen
+rCH <- CH          # Recoded CH
+rCH[rCH==0] <- 3
+
+
+# 9.2.3. Analysis of the model
+# Specify model in BUGS language
+sink("ms.jags")
+cat("
+model {
+
+# -------------------------------------------------
+# Parameters:
+# phiA: survival probability at site A
+# phiB: survival probability at site B
+# psiAB: movement probability from site A to site B
+# psiBA: movement probability from site B to site A
+# pA: recapture probability at site A
+# pB: recapture probability at site B
+# -------------------------------------------------
+# States (S):
+# 1 alive at A
+# 2 alive at B
+# 3 dead
+# Observations (O):  
+# 1 seen at A 
+# 2 seen at B
+# 3 not seen
+# -------------------------------------------------
+
+# Priors and constraints
+for (t in 1:(n.occasions-1)){
+   phiA[t] <- mean.phi[1]
+   phiB[t] <- mean.phi[2]
+   psiAB[t] <- mean.psi[1]
+   psiBA[t] <- mean.psi[2]
+   pA[t] <- mean.p[1]
+   pB[t] <- mean.p[2]
+   }
+for (u in 1:2){
+   mean.phi[u] ~ dunif(0, 1)    # Priors for mean state-spec. survival
+   mean.psi[u] ~ dunif(0, 1)    # Priors for mean transitions
+   mean.p[u] ~ dunif(0, 1)      # Priors for mean state-spec. recapture
+   }
+
+# Define state-transition and observation matrices
+for (i in 1:nind){  
+   # Define probabilities of state S(t+1) given S(t)
+   for (t in f[i]:(n.occasions-1)){
+      ps[1,i,t,1] <- phiA[t] * (1-psiAB[t])
+      ps[1,i,t,2] <- phiA[t] * psiAB[t]
+      ps[1,i,t,3] <- 1-phiA[t]
+      ps[2,i,t,1] <- phiB[t] * psiBA[t]
+      ps[2,i,t,2] <- phiB[t] * (1-psiBA[t])
+      ps[2,i,t,3] <- 1-phiB[t]
+      ps[3,i,t,1] <- 0
+      ps[3,i,t,2] <- 0
+      ps[3,i,t,3] <- 1
+      
+      # Define probabilities of O(t) given S(t)
+      po[1,i,t,1] <- pA[t]
+      po[1,i,t,2] <- 0
+      po[1,i,t,3] <- 1-pA[t]
+      po[2,i,t,1] <- 0
+      po[2,i,t,2] <- pB[t]
+      po[2,i,t,3] <- 1-pB[t]
+      po[3,i,t,1] <- 0
+      po[3,i,t,2] <- 0
+      po[3,i,t,3] <- 1
+      } #t
+   } #i
+
+# Likelihood 
+for (i in 1:nind){
+   # Define latent state at first capture
+   z[i,f[i]] <- y[i,f[i]]
+   for (t in (f[i]+1):n.occasions){
+      # State process: draw S(t) given S(t-1)
+      z[i,t] ~ dcat(ps[z[i,t-1], i, t-1,])
+      # Observation process: draw O(t) given S(t)
+      y[i,t] ~ dcat(po[z[i,t], i, t-1,])
+      } #t
+   } #i
+}
+",fill = TRUE)
+sink()
+
+# Function to create known latent states z
+known.state.ms <- function(ms, notseen){
+   # notseen: label for ?not seen?
+   state <- ms
+   state[state==notseen] <- NA
+   for (i in 1:dim(ms)[1]){
+      m <- min(which(!is.na(state[i,])))
+      state[i,m] <- NA
+      }
+   return(state)
+   }
+
+# Function to create initial values for unknown z
+ms.init.z <- function(ch, f){
+   for (i in 1:dim(ch)[1]){ch[i,1:f[i]] <- NA}
+   states <- max(ch, na.rm = TRUE)
+   known.states <- 1:(states-1)
+   v <- which(ch==states)
+   ch[-v] <- NA
+   ch[v] <- sample(known.states, length(v), replace = TRUE)
+   return(ch)
+   }
+
+# Bundle data
+jags.data <- list(y = rCH, f = f, n.occasions = dim(rCH)[2], nind = dim(rCH)[1], z = known.state.ms(rCH, 3))
+
+# Initial values
+inits <- function(){list(mean.phi = runif(2, 0, 1), mean.psi = runif(2, 0, 1), mean.p = runif(2, 0, 1), z = ms.init.z(rCH, f))}  
+
+# Parameters monitored
+parameters <- c("mean.phi", "mean.psi", "mean.p")
+
+library(rjags)
+mod <- jags.model("ms.jags", jags.data, inits, n.chains=3, n.adapt=200)
+out <- coda.samples(mod,parameters,n.iter=500)
+ 
+plot(out)
+summary(out)
+
+
+
+```
+
