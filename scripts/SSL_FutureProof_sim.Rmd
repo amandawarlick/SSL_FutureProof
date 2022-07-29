@@ -527,6 +527,13 @@ prop_conv <- converged %>%
   transform(prop_conv = round(conv/tot,1)) %>%
   dplyr::select(scenario, prop_conv)
 
+scenarios_tab <- scenarios %>%
+  merge(prop_conv, by = 'scenario') %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2),
+                                 labels = c('Annual', 'Biennial')))
+
+kable(scenarios_tab)
+
 
 ```
 

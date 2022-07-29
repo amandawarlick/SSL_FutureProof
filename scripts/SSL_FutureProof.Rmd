@@ -440,16 +440,16 @@ SSL_CJS <- nimbleCode({
     b.mass ~ dnorm(0, sd = s.mass)
     s.mass ~ dexp(1)
     
-    b.siteP[2] <- 0
-    b.site1[2] <- 0
-    b.site2[2] <- 0
-    b.siteJ[2] <- 0
-    b.siteA[2] <- 0
-    b.siteP[1] ~ dnorm(0, sd = s.siteP)
-    b.site1[1] ~ dnorm(0, sd = s.site1)
-    b.site2[1] ~ dnorm(0, sd = s.site2)
-    b.siteJ[1] ~ dnorm(0, sd = s.siteJ)
-    b.siteA[1] ~ dnorm(0, sd = s.siteA)
+    b.siteP[1] <- 0
+    b.site1[1] <- 0
+    b.site2[1] <- 0
+    b.siteJ[1] <- 0
+    b.siteA[1] <- 0
+    b.siteP[2] ~ dnorm(0, sd = s.siteP)
+    b.site1[2] ~ dnorm(0, sd = s.site1)
+    b.site2[2] ~ dnorm(0, sd = s.site2)
+    b.siteJ[2] ~ dnorm(0, sd = s.siteJ)
+    b.siteA[2] ~ dnorm(0, sd = s.siteA)
     s.siteP ~ dexp(1)
     s.site1 ~ dexp(1)
     s.site2 ~ dexp(1)
