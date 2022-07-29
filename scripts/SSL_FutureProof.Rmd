@@ -1087,16 +1087,16 @@ phi.vals <- post_sum %>%
   transform(sex = ifelse(grepl('M', age), 'Male', 'Female')) %>%
   transform(age = gsub('M', '', age)) %>%
   transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) %>%
-  merge(mean.phi.vals, by = c('age'), suffixes = c('', '.mean'))
+  merge(mean.phi.vals, by = c('age', 'sex'), suffixes = c('', '.mean'))
 
 #temporal variance with mean rates; intercept represents female, so can't show males
 ggplot(phi.vals %>% filter(sex == 'Female' & region == 2),
        aes(year, med, color = factor(region), group = factor(region))) +
-  geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
+  geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5),
                 width = 0.5, show.legend = F) +
-  geom_point(size = 0.8, position = position_dodge(0.5)) + 
+  geom_point(size = 0.8, position = position_dodge(0.5)) +
   geom_line(size = 0.7, position = position_dodge(0.5)) +
-  geom_line(aes(year, med.mean), col = 'grey60', linetype = 'dotted') +
+  geom_line(aes(year, med.mean), col = 'grey20', linetype = 'dotted') +
   xlab('') + ylab(expression(paste('Predicted survival probability ',  '(', phi, ')'))) +
   ggtitle('') +
     facet_grid(. ~ age) +
@@ -1180,13 +1180,30 @@ ggplot(p.vals, aes(age, med)) +
   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') 
 
 #temporal variance
-p.pars <- c('p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'pA')
+p.vals <- post_sum %>%
+  filter(grepl('.prob', variable)) %>%
+  filter(!grepl('phi', variable)) %>%
+  transform(year = as.numeric(as.character(gsub('.+\\[([0-9]+)\\].*$', '\\1', 
+                                                variable)))) %>%
+  transform(variable = sub("\\[.*", "", variable)) %>%
+  transform(age = gsub('.prob', '', variable)) %>%
+  transform(age = gsub('p', '', age)) %>%
+  transform(age = factor(age, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) 
 
-p.pars <- all_pars[which(variable %in% p.pars)]
-
-p.probs <- post_sum %>% filter(grepl('p1', variable))
-
-
+ggplot(p.vals, aes(year, med)) +
+  geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
+                width = 0.5, show.legend = F) +
+  geom_point(size = 0.8, position = position_dodge(0.5)) + 
+  geom_line(size = 0.7, position = position_dodge(0.5)) +
+  xlab('') + ylab(expression(paste('Predicted detection probability '))) +
+  ggtitle('') +
+    facet_wrap(. ~ age) +
+  # facet_grid(age ~ region) +
+  plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
+             plot.title = element_text(hjust = 0.5)) +
+  guides(color = guide_legend("", nrow = 1, byrow = T)) +
+  scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
+  scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
 
 ```
 

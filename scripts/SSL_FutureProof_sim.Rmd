@@ -11,6 +11,7 @@ library(here) #v1.0.1
 library(dplyr) #v1.0.5
 library(nimble) #v0.12.1
 library(coda)
+library(ggh4x)
 
 source(here::here('scripts', 'PlotTheme.R'))
 
@@ -159,8 +160,8 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 1 #1-12
-nsim <- 1
+scenario <- 9 #1-12
+nsim <- 40
 n.states <- 12
 n.obs <- 12
 
@@ -179,8 +180,6 @@ n.occasions <- 12 #10-yr survey period
 
 n.brand.low <- 50 #number of marked individuals at each release
 n.brand.high <- 200
-n.brand.low <- 10 #number of marked individuals at each release
-n.brand.high <- 50
 
 # n.occ.low <- rep(c(#individuals,0), n.occasions/2) #marking frequency, every 2 years (5 cohorts)
 # n.occ.high <- rep(X, n.occasions) #every year (10 cohorts)
@@ -404,14 +403,14 @@ params <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phi4', 'int.phi
 ### run model
 n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
 n.iter = 20000; n.chains = 3; n.burnin = 10000; nthin = 3; nAdapt = 20
-n.iter = 35; n.chains = 2; n.burnin = 20; nthin = 3; nAdapt = 20
+# n.iter = 35; n.chains = 2; n.burnin = 20; nthin = 3; nAdapt = 20
 
 Rmodel <- nimbleModel(code = SSL_CJS, 
                       constants = nim.constants, data = nim.data, 
                       calculate = F, check = F, inits = inits)
 
 conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
-                      thin = nthin, useConjugacy = FALSE, enableWAIC = TRUE)
+                      thin = nthin, useConjugacy = FALSE)
 
 Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
 Cmodel <- compileNimble(Rmodel)
@@ -475,7 +474,7 @@ colnames(rmse) <- c(phi.pars.names, p.pars.names)
 } #simulations
 
 # save output
-batch <- ''
+batch <- '1'
 saveRDS(bias, file = here::here('results', 'sims', 
                                 paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
 saveRDS(out_median, file = here::here('results', 'sims', 
@@ -486,6 +485,231 @@ saveRDS(out, file = here::here('results', 'sims',
                                paste('S.', scenario, '_chains', batch, '.rds', sep = '')))
 
 
+
+```
+
+
+```{r convergence summary}
+
+sc <- c(1:12)
+
+scenarios <- data.frame(scenario = c(sc),
+                        survey_freq = c(rep(1,6), rep(2,6)),
+                        detection = c(rep(c('Low', 'Low', 'Med', 'Med', 'High', 'High'), 2)),
+                        N = c(rep(c(50,200), 6)))
+                        
+med.files <- list.files(path = here::here('results', 'sims'), 
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+
+converged <- data.frame()
+for (f in 1:length(med.files)) {
+
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'sims', 
+                                                     med.files[f]))[,'max_rhat']) %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(rhat = as.numeric(rhat))
+
+converged <- rbind(converged, rhats)
+
+}
+
+tot_runs <- converged %>%
+  filter(!is.na(rhat)) %>%
+  group_by(scenario) %>%
+  dplyr::summarize(tot = n())
+
+prop_conv <- converged %>%
+  filter(rhat<1.10) %>%
+  group_by(scenario) %>%
+  dplyr::summarize(conv = n()) %>%
+  merge(tot_runs, by = 'scenario', all = T) %>%
+  transform(prop_conv = round(conv/tot,1)) %>%
+  dplyr::select(scenario, prop_conv)
+
+
+```
+
+
+```{r results bias}
+
+bias.files <- list.files(path = here::here('results', 'sims'), 
+                    pattern = 'bias', all.files = FALSE, full.names = F)
+
+rel.bias <- data.frame()
+for (f in 1:length(bias.files)) {
+temp.bias <- data.frame(readRDS(file = here::here('results', 'sims',
+                                                  bias.files[f])))
+#use gsub on bias files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'sims',
+                                                     gsub('bias', 'median', bias.files[f])))[,'max_rhat'])
+
+temp.bias$rhat <- as.numeric(rhats$rhat)
+temp <- temp.bias %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', bias.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rel.bias <- rbind(rel.bias, temp)
+
+} #rds file
+
+rel.bias <- rel.bias %>%
+  filter(rhat < 1.1) 
+
+mean.rel.bias <- data.frame(rel.bias) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
+                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
+
+phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[4]','phi[5]',
+              'phi[6]','phi[7]', 'phi[8]', 'phi[9]', 'phi[A]')
+p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
+
+
+freq_labels <- c('1' = 'Annual', '2' = 'Biennial')
+
+#phi
+plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
+                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+                              labels = phi_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#p
+plot_dat <- mean.rel.bias %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
+  transform(variable = factor(variable, 
+                              levels = c('p1', 'p2', 'pJ', 'pA'), 
+                              labels = p_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+
+```
+
+
+```{r results rmse}
+
+rmse.files <- list.files(path = here::here('results', 'sims'), 
+                    pattern = 'rmse', all.files = FALSE, full.names = F)
+
+rmse <- data.frame()
+for (f in 1:length(rmse.files)) {
+temp.rmse <- data.frame(readRDS(file = here::here('results', 'sims',
+                                                  rmse.files[f])))
+#use gsub on rmse files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'sims',
+                                                     gsub('rmse', 'median', rmse.files[f])))[,'max_rhat'])
+
+temp.rmse$rhat <- as.numeric(rhats$rhat)
+temp <- temp.rmse %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', rmse.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rmse <- rbind(rmse, temp)
+
+} #rds file
+
+rmse <- rmse %>%
+  filter(rhat < 1.1) 
+
+mean.rmse <- data.frame(rmse) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
+                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
+
+
+#phi
+plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
+                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+                              labels = phi_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#p
+plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
+  transform(variable = factor(variable, 
+                              levels = c('p1', 'p2', 'pJ', 'pA'), 
+                              labels = p_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 ```
 
