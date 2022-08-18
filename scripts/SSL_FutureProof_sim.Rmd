@@ -206,8 +206,10 @@ marked[,1] <- eval(parse(text = paste0('pars.', scenario)))[6:(n.occasions+5)]
 n_params <- length(c(phi.pars, p.pars))
 out_median <- matrix(NA, nsim, n_params+2) #rhat storage
 out_true <- matrix(NA, nsim, n_params) 
-bias <- rmse <- matrix(NA, nsim, n_params) #don't need psi and nest success, Nlaid
+bias <- rmse <- matrix(NA, nsim, n_params) 
 
+
+pars <- eval(parse(text = paste0('pars.', scenario)))
 
 ```
 
