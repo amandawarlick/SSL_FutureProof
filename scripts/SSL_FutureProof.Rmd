@@ -284,7 +284,7 @@ SSL_CJS <- nimbleCode({
     } #t 
     
     for (t in 2:(n_occasions-1)) {
-      logit(phi1[i,t]) <- mu.1 + b.sex1[sex[i]] + b.mass*mass[i] + eps1[t] +b.site1[site[i]]
+      logit(phi1[i,t]) <- mu.1 + b.sex1[sex[i]] + b.mass*mass[i] + eps1[t] + b.site1[site[i]]
       logit(p2[i,t]) <- mu.p2  + eps.p2[t]
     }
     
@@ -587,7 +587,6 @@ out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, in
 saveRDS(out, here::here('results', 'out_ME.RDS')) 
 
 ```
-
 
 ```{r null model text}
 

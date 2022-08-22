@@ -251,7 +251,7 @@ prop_conv <- converged %>%
   dplyr::summarize(conv = n()) %>%
   merge(tot_runs, by = 'scenario', all = T) %>%
   transform(prop_conv = round(conv/tot,1)) %>%
-  dplyr::select(scenario, prop_conv)
+  dplyr::select(scenario, tot, prop_conv)
 
 scenarios_tab <- scenarios %>%
   merge(prop_conv, by = 'scenario') %>%
@@ -319,6 +319,26 @@ plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#just younger ages
+ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]', 'phi[4]',
+                                           'phi[5]')), 
+       aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +
@@ -411,6 +431,26 @@ plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.title.x = element_blank()) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#younger ages
+ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]', 'phi[4]',
+                                           'phi[5]')), 
+       aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +

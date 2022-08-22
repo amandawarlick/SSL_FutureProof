@@ -160,7 +160,7 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 9 #1-12
+scenario <- 1 #1-12
 nsim <- 40
 n.states <- 12
 n.obs <- 12
@@ -527,7 +527,7 @@ prop_conv <- converged %>%
   dplyr::summarize(conv = n()) %>%
   merge(tot_runs, by = 'scenario', all = T) %>%
   transform(prop_conv = round(conv/tot,1)) %>%
-  dplyr::select(scenario, prop_conv)
+  dplyr::select(scenario, tot, prop_conv)
 
 scenarios_tab <- scenarios %>%
   merge(prop_conv, by = 'scenario') %>%
