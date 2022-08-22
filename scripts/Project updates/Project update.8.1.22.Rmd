@@ -14,6 +14,7 @@ library(coda)
 library(ggh4x)
 library(readr)
 library(knitr)
+library(Hmisc)
 
 source(here::here('scripts', 'PlotTheme.R'))
 
@@ -314,13 +315,13 @@ freq_labels <- c('1' = 'Annual', '2' = 'Biennial')
 
 #phi
 plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
+  transform(variable_lab = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
                                                    'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') +
+  xlab('Detection probability') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -331,9 +332,29 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable_lab))))))
+
+#without older ages
+ggplot(plot_dat %>% filter(variable %nin% c('phiA', 'phi9', 'phi8', 'phi7')), aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection probability') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  # facet_grid(N ~ survey_freq, drop = T,
+  #            # labeller = labeller(survey_freq = freq_labels),
+  #            scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable_lab))))))
+
 
 #just younger ages
 ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]', 'phi[4]',
@@ -363,7 +384,7 @@ plot_dat <- mean.rel.bias %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') +
+  xlab('Detection probability') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -374,8 +395,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 
@@ -432,7 +452,7 @@ plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') +
+  xlab('Detection probability') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -443,8 +463,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #younger ages
@@ -475,7 +494,7 @@ plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') +
+  xlab('Detection probability') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -486,8 +505,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 ```

@@ -162,6 +162,7 @@ getP <- nimbleFunction(
 
 scenario <- 1 #1-12
 nsim <- 40
+
 n.states <- 12
 n.obs <- 12
 
@@ -199,6 +200,12 @@ pars.10 <- c(p.pars, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n
 pars.11 <- c(p.pars+p.pars*0.2, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
 pars.12 <- c(p.pars+p.pars*0.2, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
 
+#extra low detection
+pars.13 <- c(p.pars-p.pars*0.35, n.brand.low, rep(n.brand.low, n.occasions))
+pars.14 <- c(p.pars+p.pars*0.35, n.brand.high, rep(n.brand.high, n.occasions))
+pars.15 <- c(p.pars+p.pars*0.35, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
+pars.16 <- c(p.pars+p.pars*0.35, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
+
 marked <- matrix(0, ncol = n.states, nrow = n.occasions)
 marked[,1] <- eval(parse(text = paste0('pars.', scenario)))[6:(n.occasions+5)] 
 
@@ -210,6 +217,7 @@ bias <- rmse <- matrix(NA, nsim, n_params)
 
 
 pars <- eval(parse(text = paste0('pars.', scenario)))
+
 
 ```
 
@@ -245,16 +253,16 @@ for (i in 1:totrel){
    for (t in 1:(n.occasions-1)){
       OBS[,,i,t] <- matrix(c(
      1,0,0,0,0,0,0,0,0,0,0,0,
-     0,p.pars[1],0,0,0,0,0,0,0,0,0,1-p.pars[1],   #1yr      
-     0,0,p.pars[2],0,0,0,0,0,0,0,0,1-p.pars[2],   #2yr
-     0,0,0,p.pars[3],0,0,0,0,0,0,0,1-p.pars[3],   #3yr
-     0,0,0,0,p.pars[3],0,0,0,0,0,0,1-p.pars[3],   #4yr 
-     0,0,0,0,0,p.pars[3],0,0,0,0,0,1-p.pars[3],   #5yr           
-     0,0,0,0,0,0,p.pars[3],0,0,0,0,1-p.pars[3],   #6yr  
-     0,0,0,0,0,0,0,p.pars[4],0,0,0,1-p.pars[4],   #7yr  
-     0,0,0,0,0,0,0,0,p.pars[4],0,0,1-p.pars[4],   #8yr  
-     0,0,0,0,0,0,0,0,0,p.pars[4],0,1-p.pars[4],   #9yr  
-     0,0,0,0,0,0,0,0,0,0,p.pars[4],1-p.pars[4],   #pA
+     0,pars[1],0,0,0,0,0,0,0,0,0,1-pars[1],   #1yr      
+     0,0,pars[2],0,0,0,0,0,0,0,0,1-pars[2],   #2yr
+     0,0,0,pars[3],0,0,0,0,0,0,0,1-pars[3],   #3yr
+     0,0,0,0,pars[3],0,0,0,0,0,0,1-pars[3],   #4yr 
+     0,0,0,0,0,pars[3],0,0,0,0,0,1-pars[3],   #5yr           
+     0,0,0,0,0,0,pars[3],0,0,0,0,1-pars[3],   #6yr  
+     0,0,0,0,0,0,0,pars[4],0,0,0,1-pars[4],   #7yr  
+     0,0,0,0,0,0,0,0,pars[4],0,0,1-pars[4],   #8yr  
+     0,0,0,0,0,0,0,0,0,pars[4],0,1-pars[4],   #9yr  
+     0,0,0,0,0,0,0,0,0,0,pars[4],1-pars[4],   #pA
      0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
       } #t
    } #i
@@ -476,7 +484,7 @@ colnames(rmse) <- c(phi.pars.names, p.pars.names)
 } #simulations
 
 # save output
-batch <- '1'
+batch <- '3'
 saveRDS(bias, file = here::here('results', 'sims', 
                                 paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
 saveRDS(out_median, file = here::here('results', 'sims', 
