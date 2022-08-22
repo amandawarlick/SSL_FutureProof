@@ -271,7 +271,6 @@ z.init = as.matrix(cjs.init(ch, fc))
 
 ```
 
-
 ```{r mixed effects time sex site weight model text}
 
 SSL_CJS <- nimbleCode({
@@ -419,22 +418,48 @@ SSL_CJS <- nimbleCode({
     b.sex5[1] <- 0
     b.sex6[1] <- 0
     b.sexA[1] <- 0
-    b.sexP[2] ~ dnorm(0, sd = s.sexP)
-    b.sex1[2] ~ dnorm(0, sd = s.sex1)
-    b.sex2[2] ~ dnorm(0, sd = s.sex2)
-    b.sex3[2] ~ dnorm(0, sd = s.sex3)
-    b.sex4[2] ~ dnorm(0, sd = s.sex4)
-    b.sex5[2] ~ dnorm(0, sd = s.sex5)
-    b.sex6[2] ~ dnorm(0, sd = s.sex6)
-    b.sexA[2] ~ dnorm(0, sd = s.sexA)
-    s.sexP ~ dexp(1)
-    s.sex1 ~ dexp(1)
-    s.sex2 ~ dexp(1)
-    s.sex3 ~ dexp(1)
-    s.sex4 ~ dexp(1)
-    s.sex5 ~ dexp(1)
-    s.sex6 ~ dexp(1)
-    s.sexA ~ dexp(1)
+    b.sexP[2] ~ dnorm(0, sd = 10)
+    b.sex1[2] ~ dnorm(0, sd = 10)
+    b.sex2[2] ~ dnorm(0, sd = 10)
+    b.sex3[2] ~ dnorm(0, sd = 10)
+    b.sex4[2] ~ dnorm(0, sd = 10)
+    b.sex5[2] ~ dnorm(0, sd = 10)
+    b.sex6[2] ~ dnorm(0, sd = 10)
+    b.sexA[2] ~ dnorm(0, sd = 10)
+    # b.sexP[2] ~ dnorm(0, sd = s.sexP)
+    # b.sex1[2] ~ dnorm(0, sd = s.sex1)
+    # b.sex2[2] ~ dnorm(0, sd = s.sex2)
+    # b.sex3[2] ~ dnorm(0, sd = s.sex3)
+    # b.sex4[2] ~ dnorm(0, sd = s.sex4)
+    # b.sex5[2] ~ dnorm(0, sd = s.sex5)
+    # b.sex6[2] ~ dnorm(0, sd = s.sex6)
+    # b.sexA[2] ~ dnorm(0, sd = s.sexA)
+    # s.sexP ~ dexp(1)
+    # s.sex1 ~ dexp(1)
+    # s.sex2 ~ dexp(1)
+    # s.sex3 ~ dexp(1)
+    # s.sex4 ~ dexp(1)
+    # s.sex5 ~ dexp(1)
+    # s.sex6 ~ dexp(1)
+    # s.sexA ~ dexp(1)
+    
+    ##ME_switch
+    # b.sexP[2] <- 0
+    # b.sex1[2] <- 0
+    # b.sex2[2] <- 0
+    # b.sex3[2] <- 0
+    # b.sex4[2] <- 0
+    # b.sex5[2] <- 0
+    # b.sex6[2] <- 0
+    # b.sexA[2] <- 0
+    # b.sexP[1] ~ dnorm(0, sd = 10)
+    # b.sex1[1] ~ dnorm(0, sd = 10)
+    # b.sex2[1] ~ dnorm(0, sd = 10)
+    # b.sex3[1] ~ dnorm(0, sd = 10)
+    # b.sex4[1] ~ dnorm(0, sd = 10)
+    # b.sex5[1] ~ dnorm(0, sd = 10)
+    # b.sex6[1] ~ dnorm(0, sd = 10)
+    # b.sexA[1] ~ dnorm(0, sd = 10)
     
     b.massP ~ dnorm(0, sd = s.mass)
     b.mass ~ dnorm(0, sd = s.mass)
@@ -478,30 +503,42 @@ SSL_CJS <- nimbleCode({
       p9.prob[t] <- 1/(1+exp(-(mu.p9 + eps.pA[t])))
       pA.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
       
-    for (r in 1:2) {
-      phiP.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.siteP[r])))
-      phiPM.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.sexP[2] + b.siteP[r])))
-      phi1.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.site1[r])))
-      phi1M.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.sex1[2] + b.site1[r])))
-      phi2.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.site2[r])))
-      phi2M.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.sex2[2] + b.site2[r])))
-      phi3.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.siteJ[r])))
-      phi3M.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.sex3[2] + b.siteJ[r])))
-      phi4.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.siteJ[r])))
-      phi4M.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.sex4[2] + b.siteJ[r])))
-      phi5.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.siteJ[r])))
-      phi5M.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.sex5[2] + b.siteJ[r])))
-      phi6.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.siteJ[r])))
-      phi6M.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.sex6[2] + b.siteJ[r])))
-      phi7.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.siteA[r])))
-      phi7M.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phi8.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.siteA[r])))
-      phi8M.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phi9.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.siteA[r])))
-      phi9M.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.sexA[2] + b.siteA[r])))
-      phiA.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
-      phiAM.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
-    }
+      phiP.prob[t] <- 1/(1+exp(-(mu.P + epsP[t])))
+      phi1.prob[t] <- 1/(1+exp(-(mu.1 + eps1[t])))
+      phi2.prob[t] <- 1/(1+exp(-(mu.2 + eps2[t])))
+      phi3.prob[t] <- 1/(1+exp(-(mu.3 + epsJ[t])))
+      phi4.prob[t] <- 1/(1+exp(-(mu.4 + epsJ[t])))
+      phi5.prob[t] <- 1/(1+exp(-(mu.5 + epsJ[t])))
+      phi6.prob[t] <- 1/(1+exp(-(mu.6 + epsJ[t])))
+      phi7.prob[t] <- 1/(1+exp(-(mu.7 + epsA[t])))
+      phi8.prob[t] <- 1/(1+exp(-(mu.8 + epsA[t])))
+      phi9.prob[t] <- 1/(1+exp(-(mu.9 + epsA[t])))
+      phiA.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
+
+    # for (r in 1:2) {
+    #   phiP.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.siteP[r])))
+    #   phiPM.prob[r,t] <- 1/(1+exp(-(mu.P + epsP[t] + b.sexP[2] + b.siteP[r])))
+    #   phi1.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.site1[r])))
+    #   phi1M.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.sex1[2] + b.site1[r])))
+    #   phi2.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.site2[r])))
+    #   phi2M.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.sex2[2] + b.site2[r])))
+    #   phi3.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.siteJ[r])))
+    #   phi3M.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.sex3[2] + b.siteJ[r])))
+    #   phi4.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.siteJ[r])))
+    #   phi4M.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.sex4[2] + b.siteJ[r])))
+    #   phi5.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.siteJ[r])))
+    #   phi5M.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.sex5[2] + b.siteJ[r])))
+    #   phi6.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.siteJ[r])))
+    #   phi6M.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.sex6[2] + b.siteJ[r])))
+    #   phi7.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.siteA[r])))
+    #   phi7M.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phi8.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.siteA[r])))
+    #   phi8M.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phi9.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.siteA[r])))
+    #   phi9M.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phiA.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
+    #   phiAM.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
+    # }
     } #t
   
     #likelihood
@@ -552,10 +589,10 @@ params <- c('int.p1', 'int.p2', 'int.p3', 'int.p4', 'int.p5', 'int.p6', 'int.p7'
             'p7.prob', 'p8.prob', 'p9.prob', 'pA.prob',
             'int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phi4', 'int.phi5', 
             'int.phi6', 'int.phi7', 'int.phi8', 'int.phi9', 'int.phiA',
-            'phiP.prob', 'phiPM.prob', 'phi1.prob', 'phi1M.prob', 'phi2.prob', 'phi2M.prob',
-            'phi3.prob', 'phi3M.prob', 'phi4.prob', 'phi4M.prob', 'phi5.prob', 'phi5M.prob',
-            'phi6.prob', 'phi6M.prob', 'phi7.prob', 'phi7M.prob', 'phi8.prob', 'phi8M.prob',
-            'phi9.prob', 'phi9M.prob', 'phiA.prob', 'phiAM.prob',
+            'phiP.prob', 'phi1.prob', 'phi2.prob', 'phi3.prob',  'phi4.prob', 'phi5.prob', 
+            'phi6.prob',  'phi7.prob',  'phi8.prob','phi9.prob',  'phiA.prob',
+            # 'phiPM.prob', 'phi1M.prob', 'phi2M.prob', 'phi3M.prob', 'phi4M.prob', 'phi5M.prob',
+            # 'phi6M.prob', 'phi7M.prob', 'phi8M.prob', 'phi9M.prob', 'phiAM.prob',
             'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sex3', 'b.sex4', 'b.sex5', 'b.sex6',
             'b.sexA', 'b.siteP', 'b.site1', 'b.site2', 'b.siteJ', 'b.siteA',
             'epsP', 'eps1', 'eps2', 'epsJ', 'epsA',
@@ -584,10 +621,9 @@ out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, in
                WAIC = TRUE,
                samplesAsCodaMCMC = TRUE)
 
-saveRDS(out, here::here('results', 'out_ME.RDS')) 
+saveRDS(out, here::here('results', 'out_ME_fixed_sd_simpleBacktrans.RDS')) 
 
 ```
-
 
 ```{r null model text}
 
@@ -750,8 +786,8 @@ params <- c('int.p1', 'int.p2', 'int.p3', 'int.p4', 'int.p5', 'int.p6', 'int.p7'
             'z')
 
 ### run model
-n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
-# n.iter = 35000; n.chains = 3; n.burnin = 20000; nthin = 3; nAdapt = 20
+# n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
+n.iter = 35000; n.chains = 3; n.burnin = 20000; nthin = 3; nAdapt = 20
 
 
 start <- Sys.time()
@@ -1011,7 +1047,7 @@ saveRDS(out, here::here('results', 'out_FE.RDS'))
 
 ```{r results - phi}
 
-out <- readRDS(here::here('results', 'out_ME.RDS'))
+out <- readRDS(here::here('results', 'out_ME_fixed_sd_switch.RDS'))
 
 all_pars <- colnames(out$samples$chain1)
 noZ <- all_pars[which(!grepl('z', all_pars))]
