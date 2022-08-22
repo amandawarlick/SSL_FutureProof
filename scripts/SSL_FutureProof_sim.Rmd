@@ -218,10 +218,7 @@ bias <- rmse <- matrix(NA, nsim, n_params)
 
 pars <- eval(parse(text = paste0('pars.', scenario)))
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 688a681cdd4380b29e8d041e757e9a3311931641
 ```
 
 
