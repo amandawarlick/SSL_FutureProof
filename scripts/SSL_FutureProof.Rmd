@@ -443,7 +443,7 @@ SSL_CJS <- nimbleCode({
     # s.sex6 ~ dexp(1)
     # s.sexA ~ dexp(1)
     
-    ##ME_switch
+    ##_switch
     # b.sexP[2] <- 0
     # b.sex1[2] <- 0
     # b.sex2[2] <- 0
@@ -577,8 +577,10 @@ inits <- list(int.phiP = 0.9, int.phi1 = 0.9, int.phi2 = 0.9, int.phi3 = 0.9, in
               mu.p1 = qlogis(0.7), mu.p2 = qlogis(0.6), mu.p3 = qlogis(0.6),
               mu.p4 = qlogis(0.6), mu.p5 = qlogis(0.4), mu.p6 = qlogis(0.6), mu.p7 = qlogis(0.6),
               mu.p8 = qlogis(0.4), mu.p9 = qlogis(0.6), mu.pA = qlogis(0.6),
-              b.massP = 0, b.mass = 0, b.sexP = 0, b.sex1 = 0, b.sex2 = 0, b.sex3 = 0, b.sex4 = 0, 
-              b.sex5 = 0, b.sex6 = 0, b.sexA = 0, b.siteP = 0, b.site1 = 0, b.site2 = 0, b.siteJ = 0, b.siteA = 0,
+              b.massP = 0, b.mass = 0, 
+              b.sexP = 0, b.sex1 = 0, b.sex2 = 0, b.sex3 = 0, b.sex4 = 0, 
+              b.sex5 = 0, b.sex6 = 0, b.sexA = 0, 
+              b.siteP = 0, b.site1 = 0, b.site2 = 0, b.siteJ = 0, b.siteA = 0,
               z = z.init)
 
 ### parameters
@@ -595,8 +597,7 @@ params <- c('int.p1', 'int.p2', 'int.p3', 'int.p4', 'int.p5', 'int.p6', 'int.p7'
             # 'phi6M.prob', 'phi7M.prob', 'phi8M.prob', 'phi9M.prob', 'phiAM.prob',
             'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sex3', 'b.sex4', 'b.sex5', 'b.sex6',
             'b.sexA', 'b.siteP', 'b.site1', 'b.site2', 'b.siteJ', 'b.siteA',
-            'epsP', 'eps1', 'eps2', 'epsJ', 'epsA',
-            'z')
+            'epsP', 'eps1', 'eps2', 'epsJ', 'epsA')
 
 ### run model
 # n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
@@ -610,7 +611,7 @@ Rmodel <- nimbleModel(code = SSL_CJS,
                       calculate = F, check = F, inits = inits)
 
 conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
-                      thin = nthin, useConjugacy = FALSE, enableWAIC = TRUE)
+                      thin = nthin, useConjugacy = FALSE)
 
 Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
 Cmodel <- compileNimble(Rmodel)
@@ -618,10 +619,9 @@ Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
 
 out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, inits = inits,
                  setSeed = FALSE, progressBar = TRUE,
-               WAIC = TRUE,
                samplesAsCodaMCMC = TRUE)
 
-saveRDS(out, here::here('results', 'out_ME_fixed_sd_simpleBacktrans.RDS')) 
+saveRDS(out, here::here('results', 'out_ME_fixed_sd2.RDS')) 
 
 ```
 
@@ -1047,13 +1047,24 @@ saveRDS(out, here::here('results', 'out_FE.RDS'))
 
 ```{r results - phi}
 
-out <- readRDS(here::here('results', 'out_ME_fixed_sd_switch.RDS'))
+library(coda)
+out <- readRDS(here::here('results', 'out_ME_fixed_sd2.RDS'))
 
 all_pars <- colnames(out$samples$chain1)
 noZ <- all_pars[which(!grepl('z', all_pars))]
 
-outmat <- as.matrix(out$samples)
-posts <- outmat[,noZ]
+out <- list(out$samples$chain1, out$samples$chain2, out$samples$chain3) %>% as.mcmc.list()
+
+# outmat <- as.matrix(out$samples)
+posts <- out[,noZ]
+outmat <- as.matrix(posts)
+
+plot(out[,c('int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phi4', 'int.phi5', 
+                  'int.phi6', 'int.phi7', 'int.phi8', 'int.phi9', 'int.phiA')])
+
+plot(out[,c('b.sexP[2]', 'b.sex1[2]', 'b.sex2[2]', 'b.sex3[2]', 'b.sex4[2]',
+                  'b.sex5[2]', 'b.sex6[2]', 'b.sexA[2]')])
+plot(out[,c('b.siteP[2]', 'b.site1[2]', 'b.site2[2]', 'b.siteJ[2]', 'b.siteA[2]')])
 
 post_sum <- data.frame(
   med = apply(posts, 2, function(x) quantile(x, probs = 0.5, na.rm = T, names = F)),
