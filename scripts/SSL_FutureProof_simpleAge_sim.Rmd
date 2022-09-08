@@ -12,6 +12,8 @@ library(dplyr) #v1.0.5
 library(nimble) #v0.12.1
 library(coda)
 library(ggh4x)
+library(knitr)
+library(readr)
 
 source(here::here('scripts', 'PlotTheme.R'))
 
@@ -160,7 +162,7 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 12 #1-12
+scenario <- 6 #1-12
 nsim <- 40
 
 n.states <- 12
@@ -462,7 +464,7 @@ colnames(rmse) <- c(phi.pars.names, p.pars.names)
 } #simulations
 
 # save output
-batch <- '3'
+batch <- '4'
 saveRDS(bias, file = here::here('results', 'simpleAge', 'sims', 
                                 paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
 saveRDS(out_median, file = here::here('results', 'simpleAge', 'sims', 
@@ -558,14 +560,12 @@ mean.rel.bias <- data.frame(rel.bias) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(variable, detection, N, survey_freq) %>%
   dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
 
-phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[4]','phi[5]',
-              'phi[6]','phi[7]', 'phi[8]', 'phi[9]', 'phi[A]')
+phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[J]', 'phi[A]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
 
 
@@ -573,8 +573,7 @@ freq_labels <- c('1' = 'Annual', '2' = 'Biennial')
 
 #phi
 plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
@@ -590,8 +589,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #p
@@ -613,8 +611,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 
@@ -653,8 +650,7 @@ mean.rmse <- data.frame(rmse) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(variable, detection, N, survey_freq) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
@@ -662,8 +658,7 @@ mean.rmse <- data.frame(rmse) %>%
 
 #phi
 plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
@@ -679,8 +674,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #p
@@ -702,8 +696,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 ```
