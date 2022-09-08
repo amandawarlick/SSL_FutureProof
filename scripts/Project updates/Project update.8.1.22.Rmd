@@ -30,7 +30,7 @@ Detection rates were estimated for each age as above with temporal variance cons
 
 ```{r results - phi}
 
-out <- readRDS(here::here('results', 'out_ME.RDS'))
+out <- readRDS(here::here('results', 'out_ME_fixed_sd_switch.RDS'))
 
 all_pars <- colnames(out$samples$chain1)
 noZ <- all_pars[which(!grepl('z', all_pars))]
@@ -307,7 +307,7 @@ mean.rel.bias <- data.frame(rel.bias) %>%
   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
 
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[4]','phi[5]',
-              'phi[6]','phi[7]', 'phi[8]', 'phi[9]', 'phi[A]')
+              'phi[6]','phi[7]', 'phi[8]', 'phi[9]', 'phi[10^plus]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
 
 

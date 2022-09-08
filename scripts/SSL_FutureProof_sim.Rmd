@@ -635,8 +635,7 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 
