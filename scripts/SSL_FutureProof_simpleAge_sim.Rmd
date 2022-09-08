@@ -1,0 +1,703 @@
+---
+title: "SSL_FitureProof_sim"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE, message = F, warning = F)
+
+library(here) #v1.0.1
+library(dplyr) #v1.0.5
+library(nimble) #v0.12.1
+library(coda)
+library(ggh4x)
+library(knitr)
+library(readr)
+
+source(here::here('scripts', 'PlotTheme.R'))
+
+```
+
+```{r functions}
+
+# Define function to simulate multistate capture-recapture data
+simul.ms <- function(STATE, OBS, marked, unobservable = NA){
+   # Unobservable: number of state that is unobservable
+   n.occasions <- dim(STATE)[4] + 1
+   CH <- CH.TRUE <- matrix(NA, ncol = n.occasions, nrow = sum(marked))
+   # Define a vector with the occasion of marking
+   mark.occ <- matrix(0, ncol = dim(STATE)[1], nrow = sum(marked))
+   g <- colSums(marked)
+   for (s in 1:dim(STATE)[1]){
+   # for (s in 1:1){
+      if (g[s]==0) next  # individuals only released as pups, state 1, skip others
+      mark.occ[(cumsum(g[1:s])-g[s]+1)[s]:cumsum(g[1:s])[s],s] <-
+      rep(1:n.occasions, marked[1:n.occasions,s])
+      } #s
+   #first occasion
+   for (i in 1:sum(marked)){
+      for (s in 1:dim(STATE)[1]){
+         if (mark.occ[i,s]==0) next
+         first <- mark.occ[i,s]
+         CH[i,first] <- s
+         CH.TRUE[i,first] <- s
+         } #s
+      #subsequent occasions
+      for (t in (first+1):n.occasions){
+         # Multinomial trials for state transitions
+         if (first==n.occasions) next
+         state <- which(rmultinom(1, 1, STATE[CH.TRUE[i,t-1],,i,t-1])==1)
+         CH.TRUE[i,t] <- state
+         # Multinomial trials for observation process
+         event <- which(rmultinom(1, 1, OBS[CH.TRUE[i,t],,i,t-1])==1)
+         CH[i,t] <- event
+         } #t
+      } #i
+   # Replace the NA and the highest state number (dead) in the file by 0
+   CH[is.na(CH)] <- 0
+   CH[CH==dim(STATE)[1]] <- 0
+   CH[CH==unobservable] <- 0
+   id <- numeric(0)
+   for (i in 1:dim(CH)[1]){
+      z <- min(which(CH[i,]!=0))
+      ifelse(z==dim(CH)[2], id <- c(id,i), id <- c(id))
+      }
+   return(list(CH=CH[-id,], CH.TRUE=CH.TRUE[-id,]))
+   # CH: capture histories to be used
+   # CH.TRUE: capture histories with perfect observation
+   }
+
+# Function to create known latent states z
+known.state.ms <- function(ms, notseen){
+   # notseen: label for not seen
+   state <- ms
+   state[state==notseen] <- NA
+   for (i in 1:dim(ms)[1]){
+      m <- min(which(!is.na(state[i,])))
+      state[i,m] <- NA
+      }
+   return(state)
+   }
+
+# Function to create initial values for unknown z
+cjs.init <- function(ch, f){
+  inits <- ch    #initialize with observations up until states diverge from observations (4yr olds)
+  for(i in 1:dim(ch)[1]) {
+    # for(i in 1:10) { 
+    inits[i,f[i]] <- NA #pups at release
+      if(n.occasions-f[i]>=1){   
+        inits[i,(f[i] + 1)] <- 2} #1 yr old
+      if(n.occasions-f[i]>=2){
+        inits[i,(f[i] + 2)] <- 3}  #2 yr old
+      if(n.occasions-f[i]>=3){
+        inits[i,(f[i] + 3)] <- 4} #3 yr old
+    if(n.occasions-f[i]>=4){
+        inits[i,(f[i] + 4)] <- 5}
+    if(n.occasions-f[i]>=5){
+        inits[i,(f[i] + 5)] <- 6}
+    if(n.occasions-f[i]>=6){
+        inits[i,(f[i] + 6)] <- 7}
+    if(n.occasions-f[i]>=7){
+        inits[i,(f[i] + 7)] <- 8}
+    if(n.occasions-f[i]>=8){
+        inits[i,(f[i] + 8)] <- 9}
+    if(n.occasions-f[i]>=9){
+        inits[i,(f[i] + 9)] <- 10}
+      if(n.occasions-f[i]>=10) {
+        inits[i,((f[i] + 10):n.occasions)] <- 11} #all 10yrs+ are A
+  } #i
+  return(inits)
+}
+
+#for the model
+getPHI <- nimbleFunction(
+  run = function(z=double(0), phiP=double(0), phi1=double(0), phi2=double(0), phi3=double(0), phi4=double(0),
+                 phi5=double(0), phi6=double(0), phi7=double(0), phi8=double(0), 
+                 phi9=double(0), phiA=double(0)) {
+   returnType(double(1))
+   ans <- rep(0,12)
+     if(z==1)   ans <- c(0,phiP,0,0,0,0,0,0,0,0,0,1-phiP)  #pup
+     if(z==2)   ans <- c(0,0,phi1,0,0,0,0,0,0,0,0,1-phi1)  #yearling   
+     if(z==3)   ans <- c(0,0,0,phi2,0,0,0,0,0,0,0,1-phi2)  #2yr
+     if(z==4)   ans <- c(0,0,0,0,phi3,0,0,0,0,0,0,1-phi3)  #3yr 
+     if(z==5)   ans <- c(0,0,0,0,0,phi4,0,0,0,0,0,1-phi4)  #4yr
+     if(z==6)   ans <- c(0,0,0,0,0,0,phi5,0,0,0,0,1-phi5)  #5yr           
+     if(z==7)   ans <- c(0,0,0,0,0,0,0,phi6,0,0,0,1-phi6)  #6yr 
+     if(z==8)   ans <- c(0,0,0,0,0,0,0,0,phi7,0,0,1-phi7)       
+     if(z==9)   ans <- c(0,0,0,0,0,0,0,0,0,phi8,0,1-phi8)       
+     if(z==10)  ans <- c(0,0,0,0,0,0,0,0,0,0,phi9,1-phi9)   
+     if(z==11)  ans <- c(0,0,0,0,0,0,0,0,0,0,phiA,1-phiA)       
+     if(z==12)  ans <- c(0,0,0,0,0,0,0,0,0,0,0,1) #D
+
+   return(ans)
+ }
+)
+
+#observations 
+getP <- nimbleFunction(
+  run = function(z=double(0), p1=double(0), p2=double(0), pJ=double(0), pA=double(0)) {
+   returnType(double(1))
+   ans <- rep(0,12)
+     if(z==1)   ans <- c(1,0,0,0,0,0,0,0,0,0,0,0) #pups seen as pups
+     if(z==2)   ans <- c(0,p1,0,0,0,0,0,0,0,0,0,1-p1)   #1yr      
+     if(z==3)   ans <- c(0,0,p2,0,0,0,0,0,0,0,0,1-p2)   #2yr
+     if(z==4)   ans <- c(0,0,0,pJ,0,0,0,0,0,0,0,1-pJ)   #3yr
+     if(z==5)   ans <- c(0,0,0,0,pJ,0,0,0,0,0,0,1-pJ)   #4yr 
+     if(z==6)   ans <- c(0,0,0,0,0,pJ,0,0,0,0,0,1-pJ)   #5yr           
+     if(z==7)   ans <- c(0,0,0,0,0,0,pJ,0,0,0,0,1-pJ)   #6yr  
+     if(z==8)   ans <- c(0,0,0,0,0,0,0,pA,0,0,0,1-pA)   #7yr  
+     if(z==9)   ans <- c(0,0,0,0,0,0,0,0,pA,0,0,1-pA)   #8yr  
+     if(z==10)  ans <- c(0,0,0,0,0,0,0,0,0,pA,0,1-pA)   #9yr  
+     if(z==11)  ans <- c(0,0,0,0,0,0,0,0,0,0,pA,1-pA)   #pA
+     if(z==12)  ans <- c(0,0,0,0,0,0,0,0,0,0,0,1)       #nd
+
+   return(ans)
+ }
+)
+
+
+```
+
+
+```{r scenarios and parameters}
+
+scenario <- 6 #1-12
+nsim <- 40
+
+n.states <- 12
+n.obs <- 12
+
+#define rates
+#survival
+phi.pars.names <- c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA')
+phi.pars <- c(0.5, 0.55, 0.6, 0.65, 0.75, 0.85)
+
+#detection
+p.pars.names <- c('p1', 'p2', 'pJ', 'pA')
+p.pars <- c(0.6, 0.6, 0.7, 0.8)
+
+#survey features
+n.occasions <- 12 #10-yr survey period
+
+n.brand.low <- 50 #number of marked individuals at each release
+n.brand.high <- 200
+
+# n.occ.low <- rep(c(#individuals,0), n.occasions/2) #marking frequency, every 2 years (5 cohorts)
+# n.occ.high <- rep(X, n.occasions) #every year (10 cohorts)
+
+pars.1 <- c(p.pars-p.pars*0.2, n.brand.low, rep(n.brand.low, n.occasions))
+pars.2 <- c(p.pars-p.pars*0.2, n.brand.high, rep(n.brand.high, n.occasions))
+pars.3 <- c(p.pars, n.brand.low, rep(n.brand.low, n.occasions))
+pars.4 <- c(p.pars, n.brand.high, rep(n.brand.high, n.occasions))
+pars.5 <- c(p.pars+p.pars*0.2, n.brand.low, rep(n.brand.low, n.occasions))
+pars.6 <- c(p.pars+p.pars*0.2, n.brand.high, rep(n.brand.high, n.occasions))
+
+#adding one marked individual in last occasion to avoid breaking the simulation function - fix later
+pars.7 <- c(p.pars-p.pars*0.2, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
+pars.8 <- c(p.pars-p.pars*0.2, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
+pars.9 <- c(p.pars, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
+pars.10 <- c(p.pars, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
+pars.11 <- c(p.pars+p.pars*0.2, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
+pars.12 <- c(p.pars+p.pars*0.2, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
+
+#extra low detection
+# pars.13 <- c(p.pars-p.pars*0.35, n.brand.low, rep(n.brand.low, n.occasions))
+# pars.14 <- c(p.pars+p.pars*0.35, n.brand.high, rep(n.brand.high, n.occasions))
+# pars.15 <- c(p.pars+p.pars*0.35, n.brand.low, c(rep(c(n.brand.low,0), (n.occasions/2)-1),n.brand.low,1))
+# pars.16 <- c(p.pars+p.pars*0.35, n.brand.high, c(rep(c(n.brand.high,0), (n.occasions/2)-1),n.brand.high,1))
+
+marked <- matrix(0, ncol = n.states, nrow = n.occasions)
+marked[,1] <- eval(parse(text = paste0('pars.', scenario)))[6:(n.occasions+5)] 
+
+#storage
+n_params <- length(c(phi.pars, p.pars))
+out_median <- matrix(NA, nsim, n_params+2) #rhat storage
+out_true <- matrix(NA, nsim, n_params) 
+bias <- rmse <- matrix(NA, nsim, n_params) 
+
+
+pars <- eval(parse(text = paste0('pars.', scenario)))
+
+
+```
+
+
+```{r simulate and run}
+
+for (s in 1:nsim) {
+
+# 1. State process matrix
+totrel <- sum(marked)*(n.occasions-1)
+STATE <- array(NA, dim=c(n.states, n.states, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      STATE[,,i,t] <- matrix(c(
+      0,phi.pars[1],0,0,0,0,0,0,0,0,0,1-phi.pars[1], #pup
+      0,0,phi.pars[2],0,0,0,0,0,0,0,0,1-phi.pars[2], #1
+      0,0,0,phi.pars[3],0,0,0,0,0,0,0,1-phi.pars[3], #2
+      0,0,0,0,phi.pars[4],0,0,0,0,0,0,1-phi.pars[4], #3
+      0,0,0,0,0,phi.pars[5],0,0,0,0,0,1-phi.pars[5], #4
+      0,0,0,0,0,0,phi.pars[5],0,0,0,0,1-phi.pars[5], #5
+      0,0,0,0,0,0,0,phi.pars[5],0,0,0,1-phi.pars[5], #6
+      0,0,0,0,0,0,0,0,phi.pars[6],0,0,1-phi.pars[6], #7
+      0,0,0,0,0,0,0,0,0,phi.pars[6],0,1-phi.pars[6], #8
+      0,0,0,0,0,0,0,0,0,0,phi.pars[6],1-phi.pars[6], #9
+      0,0,0,0,0,0,0,0,0,0,phi.pars[6],1-phi.pars[6], #plus
+      0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# 2.Observation process matrix
+OBS <- array(NA, dim=c(n.states, n.obs, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      OBS[,,i,t] <- matrix(c(
+     1,0,0,0,0,0,0,0,0,0,0,0,
+     0,pars[1],0,0,0,0,0,0,0,0,0,1-pars[1],   #1yr      
+     0,0,pars[2],0,0,0,0,0,0,0,0,1-pars[2],   #2yr
+     0,0,0,pars[3],0,0,0,0,0,0,0,1-pars[3],   #3yr
+     0,0,0,0,pars[3],0,0,0,0,0,0,1-pars[3],   #4yr 
+     0,0,0,0,0,pars[3],0,0,0,0,0,1-pars[3],   #5yr           
+     0,0,0,0,0,0,pars[3],0,0,0,0,1-pars[3],   #6yr  
+     0,0,0,0,0,0,0,pars[4],0,0,0,1-pars[4],   #7yr  
+     0,0,0,0,0,0,0,0,pars[4],0,0,1-pars[4],   #8yr  
+     0,0,0,0,0,0,0,0,0,pars[4],0,1-pars[4],   #9yr  
+     0,0,0,0,0,0,0,0,0,0,pars[4],1-pars[4],   #pA
+     0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# Execute simulation function
+sim <- simul.ms(STATE, OBS, marked)
+CH <- sim$CH
+CH.TRUE <- sim$CH.TRUE
+
+# Compute vector with occasion of first capture
+get.first <- function(x) min(which(x!=0))
+f <- apply(CH, 1, get.first)
+
+# Recode CH matrix: note, a 0 is not allowed; 12 = not seen
+rCH <- CH          # Recoded CH
+rCH[rCH==0] <- 12
+
+z.init <- as.matrix(cjs.init(rCH, f))
+# z.st <- known.state.ms(rCH, 12)
+
+#model text
+SSL_CJS <- nimbleCode({
+
+# Priors and constraints
+  for (i in 1:n_ind) { 
+    for (t in 1:(n.occasions - 1)) {
+      logit(phiP[i,t]) <- mu.P 
+      logit(p1[i,t]) <- mu.p1 
+    } #t 
+    
+    for (t in 2:(n.occasions-1)) {
+      logit(phi1[i,t]) <- mu.1 
+      logit(p2[i,t]) <- mu.p2  
+    }
+    
+    for (t in 3:(n.occasions-1)) {
+      logit(phi2[i,t]) <- mu.2
+      logit(pJ[i,t]) <- mu.pJ 
+    }
+    
+    for (t in 4:(n.occasions-1)) { 
+      logit(phi3[i,t]) <- mu.3 
+    } #t psi
+    
+    for (t in 5:(n.occasions-1)) {
+      logit(phi4[i,t]) <- mu.J 
+    } #t 
+    
+    for (t in 6:(n.occasions-1)) {  
+      logit(phi5[i,t]) <- mu.J 
+    } #t 
+    
+    for (t in 7:(n.occasions-1)) {  
+      logit(phi6[i,t]) <- mu.J 
+      logit(pA[i,t]) <- mu.pA 
+    } #t 
+    
+    for (t in 8:(n.occasions-1)) {  
+      logit(phi7[i,t]) <- mu.A 
+    } #t 
+    
+    for (t in 9:(n.occasions-1)) {  
+      logit(phi8[i,t]) <- mu.A 
+    } #t 
+    
+    for (t in 10:(n.occasions-1)) {  
+      logit(phi9[i,t]) <- mu.A 
+    } #t 
+    
+    for (t in 11:(n.occasions-1)) {  
+      logit(phiA[i,t]) <- mu.A 
+    } #t 
+    
+  } #ind
+
+    
+### Priors
+    #p
+    mu.p1 <- log(int.p1/(1 - int.p1))
+    mu.p2 <- log(int.p2/(1 - int.p2))
+    mu.pJ <- log(int.pJ/(1 - int.pJ))
+    mu.pA <- log(int.pA/(1 - int.pA))
+
+    int.p1 ~ dunif(0,1)
+    int.p2 ~ dunif(0,1)
+    int.pJ ~ dunif(0,1)
+    int.pA ~ dunif(0,1)
+
+    mu.P <- log(int.phiP/(1 - int.phiP))
+    mu.1 <- log(int.phi1/(1 - int.phi1))
+    mu.2 <- log(int.phi2/(1 - int.phi2))
+    mu.3 <- log(int.phi3/(1 - int.phi3))
+    mu.J <- log(int.phiJ/(1 - int.phiJ))
+    mu.A <- log(int.phiA/(1 - int.phiA))
+    
+    int.phiP ~ dunif(0,1)
+    int.phi1 ~ dunif(0,1)
+    int.phi2 ~ dunif(0,1)
+    int.phi3 ~ dunif(0,1)
+    int.phiJ ~ dunif(0,1)
+    int.phiA ~ dunif(0,1)
+  
+    #likelihood
+for (i in 1:n_ind) { #females
+    z[i, f[i]:f[i]] <- 1 #pups at first capture
+
+for (t in (f[i] + 1):n.occasions) {
+      z[i,t] ~ dcat(state_probs[i,t-1,1:12])
+      y[i,t] ~ dcat(event_probs[i,t,1:12])
+      
+    state_probs[i,t-1,1:12] <- getPHI(z = z[i,t-1], 
+                                      phiP = phiP[i,t-1], phi1 = phi1[i,t-1], phi2 = phi2[i,t-1], 
+                                      phi3 = phi3[i,t-1], phi4 = phi4[i,t-1], phi5 = phi5[i,t-1], 
+                                      phi6 = phi6[i,t-1], phi7 = phi7[i,t-1], phi8 = phi8[i,t-1],
+                                      phi9 = phi9[i,t-1], phiA = phiA[i,t-1])
+    
+    event_probs[i,t,1:12] <- getP(z = z[i,t], 
+                                    p1 = p1[i,t-1], p2 = p2[i,t-1], pJ = pJ[i,t-1], pA = pA[i,t-1])
+    } #t likelihood 
+} #i likelihood 
+    
+}) # mod   
+
+
+nim.data <- list(y = rCH)
+
+nim.constants <- list(n_ind = dim(rCH)[1], n.occasions = n.occasions,
+                      # mass = mass, site = rook, sex = sex,
+                      f = f)
+
+inits <- list(z = z.init)
+
+### parameters
+params <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phiJ', 'int.phiA',
+            'int.p1', 'int.p2', 'int.pJ', 'int.pA')
+
+### run model
+n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
+n.iter = 20000; n.chains = 3; n.burnin = 10000; nthin = 3; nAdapt = 20
+# n.iter = 35; n.chains = 2; n.burnin = 20; nthin = 3; nAdapt = 20
+
+Rmodel <- nimbleModel(code = SSL_CJS, 
+                      constants = nim.constants, data = nim.data, 
+                      calculate = F, check = F, inits = inits)
+
+conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
+                      thin = nthin, useConjugacy = FALSE)
+
+Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, inits = inits,
+               setSeed = FALSE, progressBar = TRUE, samplesAsCodaMCMC = TRUE)
+
+#summarize output
+rhats <- gelman.diag(out[,c(params)], multivariate=F, autoburnin=F)
+
+rhats_df <- data.frame(rhats = rhats$psrf[,1], names = row.names(rhats$psrf))
+
+out_median[s,] <- c(summary(out)$q[,"50%"], max(rhats$psrf[,1], na.rm = T),
+                    rhats_df[which.max(rhats_df[,1]),2])
+colnames(out_median) <- c(names(summary(out)$q[,"50%"]), 'max_rhat', 'max_rhat_par')
+
+#true values
+out_true[s,] <- c(phi.pars, eval(parse(text = paste0('pars.', scenario)))[1:4])
+colnames(out_true) <- c(phi.pars.names, p.pars.names)
+
+#bias
+bias[s,] <- c((summary(out[,"int.phiP"])$q["50%"]-out_true[s,1])/out_true[s,1],
+              (summary(out[,"int.phi1"])$q["50%"]-out_true[s,2])/out_true[s,2],
+              (summary(out[,"int.phi2"])$q["50%"]-out_true[s,3])/out_true[s,3],
+              (summary(out[,"int.phi3"])$q["50%"]-out_true[s,4])/out_true[s,4],
+              (summary(out[,"int.phiJ"])$q["50%"]-out_true[s,5])/out_true[s,5],
+              (summary(out[,"int.phiA"])$q["50%"]-out_true[s,6])/out_true[s,6],
+              (summary(out[,"int.p1"])$q["50%"]-out_true[s,7])/out_true[s,7],
+              (summary(out[,"int.p2"])$q["50%"]-out_true[s,8])/out_true[s,8],
+              (summary(out[,"int.pJ"])$q["50%"]-out_true[s,9])/out_true[s,9],
+              (summary(out[,"int.pA"])$q["50%"]-out_true[s,10])/out_true[s,10])
+colnames(bias) <- c(phi.pars.names, p.pars.names)
+
+#rmse: sqrt(mean(theta.iter-T)^2)
+out_mat <- as.matrix(out)
+
+rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
+              sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
+              sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
+              sqrt(mean((out_mat[,'int.phi3']-out_true[s,4])^2)),
+              sqrt(mean((out_mat[,'int.phiJ']-out_true[s,5])^2)),
+              sqrt(mean((out_mat[,'int.phiA']-out_true[s,6])^2)),
+              sqrt(mean((out_mat[,'int.p1']-out_true[s,7])^2)),
+              sqrt(mean((out_mat[,'int.p2']-out_true[s,8])^2)),
+              sqrt(mean((out_mat[,'int.pJ']-out_true[s,9])^2)),
+              sqrt(mean((out_mat[,'int.pA']-out_true[s,10])^2)))
+
+colnames(rmse) <- c(phi.pars.names, p.pars.names)
+
+} #simulations
+
+# save output
+batch <- '4'
+saveRDS(bias, file = here::here('results', 'simpleAge', 'sims', 
+                                paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
+saveRDS(out_median, file = here::here('results', 'simpleAge', 'sims', 
+                                      paste('S.', scenario,  '_median', batch, '.rds', sep = '')))
+saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',
+                                paste('S.', scenario, '_rmse', batch, '.rds', sep = '')))
+saveRDS(out, file = here::here('results', 'simpleAge', 'sims',  
+                               paste('S.', scenario, '_chains', batch, '.rds', sep = '')))
+
+
+
+```
+
+
+```{r convergence summary}
+
+sc <- c(1:12)
+
+scenarios <- data.frame(scenario = c(sc),
+                        survey_freq = c(rep(1,6), rep(2,6)),
+                        detection = c(rep(c('Low', 'Low', 'Med', 'Med', 'High', 'High'), 2)),
+                        N = c(rep(c(50,200), 6)))
+                        
+med.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+
+converged <- data.frame()
+for (f in 1:length(med.files)) {
+
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 
+                                                     med.files[f]))[,'max_rhat']) %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(rhat = as.numeric(rhat))
+
+converged <- rbind(converged, rhats)
+
+}
+
+tot_runs <- converged %>%
+  filter(!is.na(rhat)) %>%
+  group_by(scenario) %>%
+  dplyr::summarize(tot = n())
+
+prop_conv <- converged %>%
+  filter(rhat<1.10) %>%
+  group_by(scenario) %>%
+  dplyr::summarize(conv = n()) %>%
+  merge(tot_runs, by = 'scenario', all = T) %>%
+  transform(prop_conv = round(conv/tot,1)) %>%
+  dplyr::select(scenario, tot, prop_conv)
+
+scenarios_tab <- scenarios %>%
+  merge(prop_conv, by = 'scenario') %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2),
+                                 labels = c('Annual', 'Biennial')))
+
+kable(scenarios_tab)
+
+
+```
+
+
+```{r results bias}
+
+bias.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'bias', all.files = FALSE, full.names = F)
+
+rel.bias <- data.frame()
+for (f in 1:length(bias.files)) {
+temp.bias <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+                                                  bias.files[f])))
+#use gsub on bias files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims',
+                                                     gsub('bias', 'median', bias.files[f])))[,'max_rhat'])
+
+temp.bias$rhat <- as.numeric(rhats$rhat)
+temp <- temp.bias %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', bias.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rel.bias <- rbind(rel.bias, temp)
+
+} #rds file
+
+rel.bias <- rel.bias %>%
+  filter(rhat < 1.1) 
+
+mean.rel.bias <- data.frame(rel.bias) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
+
+phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[J]', 'phi[A]')
+p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
+
+
+freq_labels <- c('1' = 'Annual', '2' = 'Biennial')
+
+#phi
+plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
+                              labels = phi_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#p
+plot_dat <- mean.rel.bias %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
+  transform(variable = factor(variable, 
+                              levels = c('p1', 'p2', 'pJ', 'pA'), 
+                              labels = p_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  scale_fill_gradient2(name = "Relative bias (%)",
+                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+
+```
+
+
+```{r results rmse}
+
+rmse.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'rmse', all.files = FALSE, full.names = F)
+
+rmse <- data.frame()
+for (f in 1:length(rmse.files)) {
+temp.rmse <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+                                                  rmse.files[f])))
+#use gsub on rmse files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 
+                                                     gsub('rmse', 'median', rmse.files[f])))[,'max_rhat'])
+
+temp.rmse$rhat <- as.numeric(rhats$rhat)
+temp <- temp.rmse %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', rmse.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rmse <- rbind(rmse, temp)
+
+} #rds file
+
+rmse <- rmse %>%
+  filter(rhat < 1.1) 
+
+mean.rmse <- data.frame(rmse) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
+
+
+#phi
+plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
+                              labels = phi_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#p
+plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
+  transform(variable = factor(variable, 
+                              levels = c('p1', 'p2', 'pJ', 'pA'), 
+                              labels = p_pars))
+
+ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+```
+
