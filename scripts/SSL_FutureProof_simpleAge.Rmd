@@ -642,7 +642,7 @@ mean.phi.sex.vals <- mu.vals %>%
   filter(grepl('int.phi', variable)) %>%
   transform(age = gsub('int.phi', '', variable), sex = 'Male')) %>%
   transform(age = factor(age, levels = c('P', '1', '2', '3', 'J', 'A'),
-                         labels = c('P', '1', '2', '3', 'J', '10+'))) 
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) 
 
 ggplot(mean.phi.sex.vals, aes(age, med, col = sex, group = sex)) +
   geom_point(position = position_dodge(0.5)) +
@@ -692,7 +692,7 @@ mean.phi.vals <- mu.vals %>%
   filter(grepl('int.phi', variable)) %>%
   transform(age = gsub('int.phi', '', variable), site = 'Pyramid Rock')) %>%
   transform(age = factor(age, levels = c('P', '1', '2', '3', 'J', 'A'),
-                         labels = c('P', '1', '2', '3', 'J', '10+'))) 
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) 
 
 ggplot(mean.phi.vals, aes(age, med, col = site, group = site)) +
   geom_point(position = position_dodge(0.5)) +
@@ -724,7 +724,7 @@ phi.vals <- post_sum %>%
   filter(age %in% c('P', '1', '2', '3', '4', 'A')) %>%
   transform(age_cat = factor(age, levels = c('P', '1', '2', '3', '4', 'A'))) %>%
   transform(age = factor(age, levels = c('P', '1', '2', '3', '4', 'A'),
-                         labels = c('P', '1', '2', '3', 'J', '10+'))) %>%
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) %>%
   merge(mean.phi.vals %>% filter(site == 'Pyramid Rock'), by = c('age'), suffixes = c('', '.mean'))
 
 #temporal variance with mean rates; intercept represents female, so can't show males
@@ -771,7 +771,7 @@ p.vals <- post_sum %>%
   filter(!grepl('phi', variable) & grepl('int.p', variable)) %>%
   transform(age = gsub('int.p', '', variable)) %>%
   transform(age = factor(age, levels = c('1', '2', '3', 'J', 'A'),
-                         labels = c('1', '2', '3', 'J', '10+')))
+                         labels = c('1', '2', '3', 'J', 'A')))
 
 ggplot(p.vals, aes(age, med)) +
   geom_point() +
@@ -793,7 +793,7 @@ p.vals <- post_sum %>%
   transform(age = gsub('.prob', '', variable)) %>%
   transform(age = gsub('p', '', age)) %>%
   transform(age = factor(age, levels = c('1', '2', '3', '4', 'A'),
-                         labels = c('1', '2', '3', 'J', '10+'))) %>%
+                         labels = c('1', '2', '3', 'J', 'A'))) %>%
   filter(!is.na(age))
 
 ggplot(p.vals, aes(year, med)) +
