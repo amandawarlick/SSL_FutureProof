@@ -1,5 +1,5 @@
 ---
-title: "SSL Future Proof Project Update - August 1 2022"
+title: "SSL Future Proof Project Update - Sept 2022"
 output: html_document
 ---
 
@@ -22,26 +22,23 @@ source(here::here('scripts', 'PlotTheme.R'))
 
 ### Demographic and detection rate estimates  
 
-Survival rates were estimated for ages P, 1:9, and age 10+, with fixed effects estimating the effect of pup mass and the differences between sex and natal region on survival over 19 years of data. The sample sizes for natal region were imbalanced, with more samples from Pyramid Rock (*n* = 1395) than South Seal Rock (*n* = 290). Fixed effects of sex were estimated for each age group while those of natal region were estimated for pups, yearlings, shared for juveniles (ages 3-6) and adults (ages 7-10+). Temporal variance was estimated using a random effect of year with a penalized complexity prior, with the random effect estimated for pups, yearlings, and pooled for juveniles (ages 3-6) and adults (ages 7-10+) jointly for both sex and natal region (i.e., trends were not estimated for each sex nor region but for age groups in the eDPS as a whole). 
+Survival rates were estimated for ages P, 1:3, juveniles (ages 4-6) adults (ages 7+), with fixed effects estimating the effect of pup mass and the differences between sex and natal region on survival over 19 years of data. The sample sizes for natal region were imbalanced, with more samples from Pyramid Rock (*n* = 1395) than South Seal Rock (*n* = 290). Fixed effects of sex were estimated for each age group while those of natal region were estimated for pups, yearlings, shared for juveniles (ages 3-6) and adults (ages 7+). Temporal variance was estimated using a random effect of year with a penalized complexity prior, with the random effect estimated for pups, yearlings, and pooled for juveniles (ages 3-6) and adults (ages 7+) jointly for both sex and natal region (i.e., trends were not estimated for each sex nor region but for age groups in the eDPS as a whole). Detection rates were estimated for each age as above with temporal variance constructed in the same fashion, but detection was assumed to be constant across sexes, natal regions, and resight location.  
 
-Detection rates were estimated for each age as above with temporal variance constructed in the same fashion, but detection was assumed to be constant across sexes, natal regions, and resight location. 
+#### Survival across sex
+```{r phi by sex}
 
-#### Survival rates  
+out <- readRDS(here::here('results', 'simpleAge', 'out_ME.RDS'))
 
-```{r results - phi}
-
-out <- readRDS(here::here('results', 'out_ME.RDS'))
-
-all_pars <- colnames(out$samples$chain1)
+all_pars <- colnames(out[[1]])
 noZ <- all_pars[which(!grepl('z', all_pars))]
 
-outmat <- as.matrix(out$samples)
-posts <- outmat[,noZ]
+posts <- out[,noZ]
+outmat <- as.matrix(posts)
 
 post_sum <- data.frame(
-  med = apply(posts, 2, function(x) quantile(x, probs = 0.5, na.rm = T, names = F)),
-  lower = apply(posts, 2, function(x) quantile(x, probs = 0.025, na.rm = T, names = F)),
-  upper = apply(posts, 2, function(x) quantile(x, probs = 0.975, na.rm = T, names = F)))
+  med = apply(outmat, 2, function(x) quantile(x, probs = 0.5, na.rm = T, names = F)),
+  lower = apply(outmat, 2, function(x) quantile(x, probs = 0.025, na.rm = T, names = F)),
+  upper = apply(outmat, 2, function(x) quantile(x, probs = 0.975, na.rm = T, names = F)))
 post_sum$variable <- row.names(post_sum)
 
 #mean rates
@@ -59,120 +56,142 @@ b.sex <- post_sum %>% filter(grepl('b.sex', variable) & med != 0) %>%
                          ifelse(grepl('sex1', variable), '1',
                                 ifelse(grepl('sex2', variable), '2', 
                                        ifelse(grepl('sex3', variable), '3', 
-                                              ifelse(grepl('sex4', variable), '4',
-                                                     ifelse(grepl('sex5', variable), '5',
-                                                            ifelse(grepl('sex6', variable), '6', 'A'))))))))
+                                              ifelse(grepl('sexJ', variable), 'J', 'A'))))))
 
-#male back transformed values
-mean.phi.vals <- mu.vals %>%
+#Female back transformed values
+mean.phi.sex.vals <- mu.vals %>%
   merge(b.sex, by = 'age', suffixes = c('', '.sex'), all = T) %>%
   #fill b.sex for older age intercepts
-  transform(med.sex = ifelse(is.na(med.sex), b.sex[b.sex$age == 'A', 'med'], med.sex),
-            lower.sex = ifelse(is.na(lower.sex), b.sex[b.sex$age == 'A', 'lower'], lower.sex),
-            upper.sex = ifelse(is.na(upper.sex), b.sex[b.sex$age == 'A', 'upper'], upper.sex)) %>%
+  # transform(med.sex = ifelse(is.na(med.sex), b.sex[b.sex$age == 'A', 'med'], med.sex),
+  #           lower.sex = ifelse(is.na(lower.sex), b.sex[b.sex$age == 'A', 'lower'], lower.sex),
+  #           upper.sex = ifelse(is.na(upper.sex), b.sex[b.sex$age == 'A', 'upper'], upper.sex)) %>%
   transform(med = 1/(1+exp(-(med + med.sex))),
             lower = 1/(1+exp(-(lower + lower.sex))),
             upper = 1/(1+exp(-(upper + upper.sex)))) %>%
-  transform(sex = 'Male') %>%
+  transform(sex = 'Female') %>%
   dplyr::select(c(med, lower, upper, variable, age, sex)) %>%
   bind_rows(
     post_sum %>%
   filter(grepl('int.phi', variable)) %>%
-  transform(age = gsub('int.phi', '', variable), sex = 'Female')) %>%
-  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A')))
+  transform(age = gsub('int.phi', '', variable), sex = 'Male')) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '3', 'J', 'A'),
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) 
 
-ggplot(mean.phi.vals, aes(age, med, col = sex, group = sex)) +
+ggplot(mean.phi.sex.vals, aes(age, med, col = sex, group = sex)) +
   geom_point(position = position_dodge(0.5)) +
   geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, position = position_dodge(0.5)) +
-  xlab('') + ylab(expression(paste('Mean survival probability ',  '(', phi, ')'))) +
+  xlab('') + ylab(expression(paste('Survival probability ',  '(', phi, ')'))) +
   ggtitle('') +
   plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
              plot.title = element_text(hjust = 0.5)) +
   guides(color = guide_legend("", nrow = 1, byrow = T)) +
   scale_color_manual(values = rainbow2[c(2,5)], name = '') 
 
+```
+
+#### Survival by site  
+```{r phi by site}
+
+#mean rates
+site.pars <- all_pars[which(grepl('b.site', all_pars))]
+mu.pars <- all_pars[which(grepl('mu.', all_pars))]
+
+pars <- c(site.pars, mu.pars)
+
+mu.vals <- post_sum %>%
+  filter(variable %in% mu.pars) %>%
+  transform(age = gsub('mu.', '', variable)) 
+
+b.site <- post_sum %>% filter(grepl('b.site', variable) & med != 0) %>%
+  transform(age = ifelse(grepl('siteP', variable), 'P', 
+                         ifelse(grepl('site1', variable), '1',
+                                ifelse(grepl('site2', variable), '2', 
+                                       ifelse(grepl('siteJ', variable), 'J', 'A')))))
+
+#male back transformed values
+mean.phi.vals <- mu.vals %>%
+  merge(b.site, by = 'age', suffixes = c('', '.site'), all.x = T) %>%
+  #fill b.sex for older age intercepts
+  transform(med.site = ifelse(is.na(med.site) & age %in% c(3), b.site[b.site$age == 'J', 'med'], med.site),
+            lower.site = ifelse(is.na(lower.site) & age %in% c(3), b.site[b.site$age == 'J', 'lower'], lower.site),
+            upper.site = ifelse(is.na(upper.site) & age %in% c(3), b.site[b.site$age == 'J', 'upper'], upper.site)) %>%
+  transform(med = 1/(1+exp(-(med + med.site))),
+            lower = 1/(1+exp(-(lower + lower.site))),
+            upper = 1/(1+exp(-(upper + upper.site)))) %>%
+  transform(site = 'South Seal Rock') %>%
+  dplyr::select(c(med, lower, upper, variable, age, site)) %>%
+  bind_rows(
+    post_sum %>%
+  filter(grepl('int.phi', variable)) %>%
+  transform(age = gsub('int.phi', '', variable), site = 'Pyramid Rock')) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '3', 'J', 'A'),
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) 
+
+ggplot(mean.phi.vals, aes(age, med, col = site, group = site)) +
+  geom_point(position = position_dodge(0.5)) +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.5, position = position_dodge(0.5)) +
+  xlab('') + ylab(expression(paste('Survival probability ',  '(', phi, ')'))) +
+  ggtitle('') +
+  plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
+             plot.title = element_text(hjust = 0.5)) +
+  guides(color = guide_legend("", nrow = 1, byrow = T)) +
+  scale_color_manual(values = rainbow2[c(2,5)], name = '') 
+
+
+```
+
+#### Survival over time
+
+```{r temporal variance}
+
+
 #temporal variance
 phi.vals <- post_sum %>%
   filter(grepl('.prob', variable)) %>%
-  transform(year = as.numeric(as.character(gsub('.+\\[([0-9]+), ([0-9]+)\\].*$', '\\2', 
+    transform(year = as.numeric(as.character(gsub('.+\\[([0-9]+)\\].*$', '\\1',
                                                 variable)))) %>%
-  transform(region = gsub('.+\\[([0-9]+), ([0-9]+)\\].*$', '\\1', variable)) %>%
+  #use when dataframe for phi.prob rather than vector
+  # transform(year = as.numeric(as.character(gsub('.+\\[([0-9]+), ([0-9]+)\\].*$', '\\2', 
+  #                                               variable)))) %>% 
+  # transform(region = gsub('.+\\[([0-9]+), ([0-9]+)\\].*$', '\\1', variable)) %>%
   transform(variable = sub("\\[.*", "", variable)) %>%
   transform(age = gsub('.prob', '', variable)) %>%
   transform(age = gsub('phi', '', age)) %>%
-  transform(age_cat = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A',
-                                         'PM', '1M', '2M', '3M', '4M', '5M', '6M', '7M', '8M', 
-                                         '9M', 'AM'))) %>%
-  transform(sex = ifelse(grepl('M', age), 'Male', 'Female')) %>%
-  transform(age = gsub('M', '', age)) %>%
-  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) %>%
-  merge(mean.phi.vals, by = c('age', 'sex'), suffixes = c('', '.mean'))  %>%
-  transform(region = factor(region, levels = c(1,2), 
-                            labels = c('Pyramid rock', 'South seal rock')))
+  filter(age %in% c('P', '1', '2', '3', '4', 'A')) %>%
+  transform(age_cat = factor(age, levels = c('P', '1', '2', '3', '4', 'A'))) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', 'A'),
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) %>%
+  merge(mean.phi.vals %>% filter(site == 'Pyramid Rock'), by = c('age'), suffixes = c('', '.mean'))
 
 #temporal variance with mean rates; intercept represents female, so can't show males
-# ggplot(phi.vals %>% filter(sex == 'Female' & region == 'Pyramid rock'),
-#        aes(year, med, color = factor(region), group = factor(region))) +
-#   geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5),
-#                 width = 0.5, show.legend = F) +
-#   geom_point(size = 0.8, position = position_dodge(0.5)) +
-#   geom_line(size = 0.7, position = position_dodge(0.5)) +
-#   geom_line(aes(year, med.mean), col = 'grey20', linetype = 'dotted') +
-#   xlab('') + ylab(expression(paste('Predicted survival probability ',  '(', phi, ')'))) +
-#   ggtitle('') +
-#     facet_grid(. ~ age) +
-#   # facet_grid(age ~ region) +
-#   plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
-#              plot.title = element_text(hjust = 0.5)) +
-#   guides(color = guide_legend("", nrow = 1, byrow = T)) +
-#   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
-#   scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
-
-#female survival across both regions
-ggplot(phi.vals %>% filter(sex == 'Female'),
-       aes(year, med, color = factor(region), group = factor(region))) +
-  geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
+ggplot(phi.vals,
+       aes(year, med)) +
+  geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5),
                 width = 0.5, show.legend = F) +
-  geom_point(size = 0.8, position = position_dodge(0.5)) + 
+  geom_point(size = 0.8, position = position_dodge(0.5)) +
   geom_line(size = 0.7, position = position_dodge(0.5)) +
-  xlab('') + ylab(expression(paste('Predicted survival probability ',  '(', phi, ')'))) +
+  geom_line(aes(year, med.mean), col = 'grey20', linetype = 'dotted') +
+  xlab('') + ylab(expression(paste('Survival probability ',  '(', phi, ')'))) +
   ggtitle('') +
     facet_wrap(. ~ age) +
-  # facet_grid(age ~ region) +
   plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
              plot.title = element_text(hjust = 0.5)) +
   guides(color = guide_legend("", nrow = 1, byrow = T)) +
   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
   scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
 
-#just young individuals
-# ggplot(phi.vals %>% filter(sex == 'Female' & age %in% c('P', '1', '2')),
-#        aes(year, med, color = factor(region), group = factor(region))) +
-#   geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
-#                 width = 0.5, show.legend = F) +
-#   geom_point(size = 0.8, position = position_dodge(0.5)) + 
-#   geom_line(size = 0.7, position = position_dodge(0.5)) +
-#   xlab('') + ylab(expression(paste('Predicted survival probability ',  '(', phi, ')'))) +
-#   ggtitle('') +
-#     facet_grid(. ~ age) +
-#   # facet_grid(age ~ region) +
-#   plot_theme(legend.position = 'top', panel.border = element_rect(fill = NA),
-#              plot.title = element_text(hjust = 0.5)) +
-#   guides(color = guide_legend("", nrow = 1, byrow = T)) +
-#   scale_color_manual(values = rainbow2[c(2,3,5,6,7,8)], name = '') +
-#   scale_x_continuous(breaks = c(seq(1, 19, by = 2)), labels = c(seq(2001, 2019, by = 2)))
-
 
 ```
 
-#### Detection rates 
-```{r results - p}
+### Detection probability
+```{r detection}
 
 #mean detection probabilities
 p.vals <- post_sum %>%
   filter(!grepl('phi', variable) & grepl('int.p', variable)) %>%
   transform(age = gsub('int.p', '', variable)) %>%
-  transform(age = factor(age, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A')))
+  transform(age = factor(age, levels = c('1', '2', '3', 'J', 'A'),
+                         labels = c('1', '2', '3', 'J', 'A')))
 
 ggplot(p.vals, aes(age, med)) +
   geom_point() +
@@ -193,14 +212,16 @@ p.vals <- post_sum %>%
   transform(variable = sub("\\[.*", "", variable)) %>%
   transform(age = gsub('.prob', '', variable)) %>%
   transform(age = gsub('p', '', age)) %>%
-  transform(age = factor(age, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', 'A')))
+  transform(age = factor(age, levels = c('1', '2', '3', '4', 'A'),
+                         labels = c('1', '2', '3', 'J', 'A'))) %>%
+  filter(!is.na(age))
 
 ggplot(p.vals, aes(year, med)) +
   geom_errorbar(aes(x = year, ymin=lower, ymax=upper), position = position_dodge(0.5), 
                 width = 0.5, show.legend = F) +
   geom_point(size = 0.8, position = position_dodge(0.5)) + 
   geom_line(size = 0.7, position = position_dodge(0.5)) +
-  xlab('') + ylab(expression(paste('Predicted detection probability '))) +
+  xlab('') + ylab(expression(paste('Detection probability '))) +
   ggtitle('') +
     facet_wrap(. ~ age) +
   # facet_grid(age ~ region) +
@@ -259,7 +280,7 @@ scenarios_tab <- scenarios %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2),
                                  labels = c('Annual', 'Biennial')))
 
-kable(scenarios_tab)
+# kable(scenarios_tab)
 
 
 ```
@@ -270,15 +291,15 @@ Plots showing relative bias for survival and detection across 12 simulation scen
 
 ```{r results bias}
 
-bias.files <- list.files(path = here::here('results', 'sims'), 
+bias.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
                     pattern = 'bias', all.files = FALSE, full.names = F)
 
 rel.bias <- data.frame()
 for (f in 1:length(bias.files)) {
-temp.bias <- data.frame(readRDS(file = here::here('results', 'sims',
+temp.bias <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
                                                   bias.files[f])))
 #use gsub on bias files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'sims',
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims',
                                                      gsub('bias', 'median', bias.files[f])))[,'max_rhat'])
 
 temp.bias$rhat <- as.numeric(rhats$rhat)
@@ -300,14 +321,12 @@ mean.rel.bias <- data.frame(rel.bias) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(variable, detection, N, survey_freq) %>%
   dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
 
-phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[4]','phi[5]',
-              'phi[6]','phi[7]', 'phi[8]', 'phi[9]', 'phi[A]')
+phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[3]', 'phi[J]', 'phi[A]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
 
 
@@ -315,51 +334,10 @@ freq_labels <- c('1' = 'Annual', '2' = 'Biennial')
 
 #phi
 plot_dat <- mean.rel.bias %>% filter(grepl('phi', variable)) %>%
-  transform(variable_lab = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection probability') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-             labeller = labeller(survey_freq = freq_labels),
-             scales = 'free_x') +
-  scale_fill_gradient2(name = "Relative bias (%)",
-                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
-  theme_bw() +
-  theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable_lab))))))
-
-#without older ages
-ggplot(plot_dat %>% filter(variable %nin% c('phiA', 'phi9', 'phi8', 'phi7')), aes(x = factor(detection), y = variable, fill = value)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection probability') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T,
-             labeller = labeller(survey_freq = freq_labels),
-             scales = 'free_x') +
-  # facet_grid(N ~ survey_freq, drop = T,
-  #            # labeller = labeller(survey_freq = freq_labels),
-  #            scales = 'free_x') +
-  scale_fill_gradient2(name = "Relative bias (%)",
-                      mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
-  theme_bw() +
-  theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable_lab))))))
-
-
-#just younger ages
-ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]', 'phi[4]',
-                                           'phi[5]')), 
-       aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +
@@ -372,8 +350,7 @@ ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]
   theme(legend.position = 'right',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
+        legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #p
@@ -384,7 +361,7 @@ plot_dat <- mean.rel.bias %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection probability') +
+  xlab('Detection') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -401,21 +378,18 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
 
 ```
 
-#### Root mean square error (RMSE)  
-
-Plots showing RMSE for survival and detection across 12 simulation scenarios. 
 
 ```{r results rmse}
 
-rmse.files <- list.files(path = here::here('results', 'sims'), 
+rmse.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
                     pattern = 'rmse', all.files = FALSE, full.names = F)
 
 rmse <- data.frame()
 for (f in 1:length(rmse.files)) {
-temp.rmse <- data.frame(readRDS(file = here::here('results', 'sims',
+temp.rmse <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
                                                   rmse.files[f])))
 #use gsub on rmse files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'sims',
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 
                                                      gsub('rmse', 'median', rmse.files[f])))[,'max_rhat'])
 
 temp.rmse$rhat <- as.numeric(rhats$rhat)
@@ -437,8 +411,7 @@ mean.rmse <- data.frame(rmse) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(variable, detection, N, survey_freq) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                            'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA',
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
@@ -446,13 +419,12 @@ mean.rmse <- data.frame(rmse) %>%
 
 #phi
 plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phi4',
-                                                   'phi5', 'phi6', 'phi7', 'phi8', 'phi9', 'phiA'), 
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phi3', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection probability') +
+  xlab('Detection') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
@@ -466,26 +438,6 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
-#younger ages
-ggplot(plot_dat %>% filter(variable %in% c('phi[P]', 'phi[1]', 'phi[2]', 'phi[3]', 'phi[4]',
-                                           'phi[5]')), 
-       aes(x = factor(detection), y = variable, fill = value)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-             labeller = labeller(survey_freq = freq_labels),
-             scales = 'free_x') +
- scale_fill_gradient2(name = "RMSE",
-                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
-  theme_bw() +
-  theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10),
-        axis.title.x = element_blank()) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
-
 #p
 plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
   transform(variable = factor(variable, 
@@ -494,7 +446,7 @@ plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
 
 ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection probability') +
+  xlab('Detection') +
   ylab('Parameter') +
   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
