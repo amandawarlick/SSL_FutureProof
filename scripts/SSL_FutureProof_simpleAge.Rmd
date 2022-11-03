@@ -588,9 +588,9 @@ noZ <- all_pars[which(!grepl('z', all_pars))]
 posts <- out[,noZ]
 outmat <- as.matrix(posts)
 
-plot(out[,c('int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phiJ', 'int.phiA')])
+plot(out[,c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')])
 
-plot(out[,c('b.sexP[1]', 'b.sex1[1]', 'b.sex2[1]', 'b.sex3[1]', 'b.sexJ[1]', 'b.sexA[1]')])
+plot(out[,c('b.sexP[1]', 'b.sex1[1]', 'b.sex2[1]', 'b.sexJ[1]', 'b.sexA[1]')])
 plot(out[,c('b.siteP[2]', 'b.site1[2]', 'b.site2[2]', 'b.siteJ[2]', 'b.siteA[2]')])
 
 post_sum <- data.frame(
@@ -715,10 +715,10 @@ phi.vals <- post_sum %>%
   transform(variable = sub("\\[.*", "", variable)) %>%
   transform(age = gsub('.prob', '', variable)) %>%
   transform(age = gsub('phi', '', age)) %>%
-  filter(age %in% c('P', '1', '2', '3', '4', 'A')) %>%
-  transform(age_cat = factor(age, levels = c('P', '1', '2', '3', '4', 'A'))) %>%
-  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', 'A'),
-                         labels = c('P', '1', '2', '3', 'J', 'A'))) %>%
+  filter(age %in% c('P', '1', '2', '4', 'A')) %>%
+  transform(age_cat = factor(age, levels = c('P', '1', '2', '4', 'A'))) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '4', 'A'),
+                         labels = c('P', '1', '2', 'J', 'A'))) %>%
   merge(mean.phi.vals %>% filter(site == 'Pyramid Rock'), by = c('age'), suffixes = c('', '.mean'))
 
 #temporal variance with mean rates; intercept represents female, so can't show males
