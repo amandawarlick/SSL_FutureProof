@@ -130,7 +130,7 @@ mean.phi.vals <- mu.vals %>%
   filter(grepl('int.phi', variable)) %>%
   transform(age = gsub('int.phi', '', variable), site = 'Pyramid Rock')) %>%
   transform(age = factor(age, levels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'),
-                         labels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'))) 
+                         labels = c('P', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10+'))) 
 
 ggplot(mean.phi.vals, aes(age, med, col = site, group = site)) +
   geom_point(position = position_dodge(0.5)) +
@@ -208,7 +208,7 @@ ggplot(phi.vals %>% filter(age %in% c('P', '1', '2')),
 
 ```
 
-### Detection probability
+#### Detection probability
 ```{r detection}
 
 #mean detection probabilities

@@ -183,7 +183,7 @@ ggplot(phi.vals,
 
 ```
 
-### Detection probability
+#### Detection probability
 ```{r detection}
 
 #mean detection probabilities
