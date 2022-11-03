@@ -291,26 +291,26 @@ SSL_CJS <- nimbleCode({
     
     for (t in 3:(n_occasions-1)) {
       logit(phi2[i,t]) <- mu.2 + b.sex2[sex[i]] + eps2[t] + b.site2[site[i]]
-      logit(p3[i,t]) <- mu.pJ + eps.pJ[t]
+      logit(p3[i,t]) <- mu.p3 + eps.pJ[t]
     }
     
     for (t in 4:(n_occasions-1)) { 
-      logit(phi3[i,t]) <- mu.J + b.sexJ[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(phi3[i,t]) <- mu.3 + b.sex3[sex[i]] + epsJ[t] + b.siteJ[site[i]]
       logit(p4[i,t]) <- mu.pJ + eps.pJ[t]
     } #t psi
     
     for (t in 5:(n_occasions-1)) {
       logit(phi4[i,t]) <- mu.J + b.sexJ[sex[i]] + epsJ[t] + b.siteJ[site[i]]
-      logit(p5[i,t]) <- mu.pA + eps.pA[t]
+      logit(p5[i,t]) <- mu.pJ + eps.pJ[t]
     } #t 
     
     for (t in 6:(n_occasions-1)) {  
-      logit(phi5[i,t]) <- mu.A + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
-      logit(p6[i,t]) <- mu.pA + eps.pA[t]
+      logit(phi5[i,t]) <- mu.J + b.sexJ[sex[i]] + epsJ[t] + b.siteJ[site[i]]
+      logit(p6[i,t]) <- mu.pJ + eps.pJ[t]
     } #t 
     
     for (t in 7:(n_occasions-1)) {  
-      logit(phi6[i,t]) <- mu.A + b.sexA[sex[i]] + epsA[t] + b.siteA[site[i]]
+      logit(phi6[i,t]) <- mu.J + b.sexJ[sex[i]] + epsJ[t] + b.siteJ[site[i]]
       logit(p7[i,t]) <- mu.pA + eps.pA[t]
     } #t 
     
@@ -354,11 +354,11 @@ SSL_CJS <- nimbleCode({
       epsJ[t] ~ dnorm(0, sd = sigmaJ)
     } #t 
     
-    for (t in 5:(n_occasions-1)) {  
+    for (t in 7:(n_occasions-1)) {  
       eps.pA[t] ~ dnorm(0, sd = sigma.pA)
     } #t 
   
-    for (t in 6:(n_occasions-1)) {  
+    for (t in 8:(n_occasions-1)) {  
       epsA[t] ~ dnorm(0, sd = sigmaA)
     } #t 
     
@@ -367,23 +367,27 @@ SSL_CJS <- nimbleCode({
     #p
     mu.p1 <- log(int.p1/(1 - int.p1))
     mu.p2 <- log(int.p2/(1 - int.p2))
+    mu.p3 <- log(int.p3/(1 - int.p3))
     mu.pJ <- log(int.pJ/(1 - int.pJ))
     mu.pA <- log(int.pA/(1 - int.pA))
 
     int.p1 ~ dunif(0,1)
     int.p2 ~ dunif(0,1)
+    int.p3 ~ dunif(0,1)
     int.pJ ~ dunif(0,1)
     int.pA ~ dunif(0,1)
 
     mu.P <- log(int.phiP/(1 - int.phiP))
     mu.1 <- log(int.phi1/(1 - int.phi1))
     mu.2 <- log(int.phi2/(1 - int.phi2))
+    mu.3 <- log(int.phi3/(1 - int.phi3))
     mu.J <- log(int.phiJ/(1 - int.phiJ))
     mu.A <- log(int.phiA/(1 - int.phiA))
     
     int.phiP ~ dunif(0,1)
     int.phi1 ~ dunif(0,1)
     int.phi2 ~ dunif(0,1)
+    int.phi3 ~ dunif(0,1)
     int.phiJ ~ dunif(0,1)
     int.phiA ~ dunif(0,1)
     
@@ -404,11 +408,13 @@ SSL_CJS <- nimbleCode({
     b.sexP[2] <- 0
     b.sex1[2] <- 0
     b.sex2[2] <- 0
+    b.sex3[2] <- 0
     b.sexJ[2] <- 0
     b.sexA[2] <- 0
     b.sexP[1] ~ dnorm(0, sd = 10)
     b.sex1[1] ~ dnorm(0, sd = 10)
     b.sex2[1] ~ dnorm(0, sd = 10)
+    b.sex3[1] ~ dnorm(0, sd = 10)
     b.sexJ[1] ~ dnorm(0, sd = 10)
     b.sexA[1] ~ dnorm(0, sd = 10)
     
@@ -445,10 +451,10 @@ SSL_CJS <- nimbleCode({
     for (t in 1:(n_occasions-1)){
       p1.prob[t] <- 1/(1+exp(-(mu.p1 + eps.p1[t])))
       p2.prob[t] <- 1/(1+exp(-(mu.p2 + eps.p2[t])))
-      p3.prob[t] <- 1/(1+exp(-(mu.pJ + eps.pJ[t])))
+      p3.prob[t] <- 1/(1+exp(-(mu.p3 + eps.pJ[t])))
       p4.prob[t] <- 1/(1+exp(-(mu.pJ + eps.pJ[t])))
-      p5.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
-      p6.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
+      p5.prob[t] <- 1/(1+exp(-(mu.pJ + eps.pJ[t])))
+      p6.prob[t] <- 1/(1+exp(-(mu.pJ + eps.pJ[t])))
       p7.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
       p8.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
       p9.prob[t] <- 1/(1+exp(-(mu.pA + eps.pA[t])))
@@ -457,10 +463,10 @@ SSL_CJS <- nimbleCode({
       phiP.prob[t] <- 1/(1+exp(-(mu.P + epsP[t])))
       phi1.prob[t] <- 1/(1+exp(-(mu.1 + eps1[t])))
       phi2.prob[t] <- 1/(1+exp(-(mu.2 + eps2[t])))
-      phi3.prob[t] <- 1/(1+exp(-(mu.J + epsJ[t])))
+      phi3.prob[t] <- 1/(1+exp(-(mu.3 + epsJ[t])))
       phi4.prob[t] <- 1/(1+exp(-(mu.J + epsJ[t])))
-      phi5.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
-      phi6.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
+      phi5.prob[t] <- 1/(1+exp(-(mu.J + epsJ[t])))
+      phi6.prob[t] <- 1/(1+exp(-(mu.J + epsJ[t])))
       phi7.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
       phi8.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
       phi9.prob[t] <- 1/(1+exp(-(mu.A + epsA[t])))
@@ -473,20 +479,20 @@ SSL_CJS <- nimbleCode({
     #   phi1M.prob[r,t] <- 1/(1+exp(-(mu.1 + eps1[t] + b.sex1[2] + b.site1[r])))
     #   phi2.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.site2[r])))
     #   phi2M.prob[r,t] <- 1/(1+exp(-(mu.2 + eps2[t] + b.sex2[2] + b.site2[r])))
-    #   phi3.prob[r,t] <- 1/(1+exp(-(mu.J + epsJ[t] + b.siteJ[r])))
-    #   phi3M.prob[r,t] <- 1/(1+exp(-(mu.J + epsJ[t] + b.sexJ[2] + b.siteJ[r])))
-    #   phi4.prob[r,t] <- 1/(1+exp(-(mu.J + epsJ[t] + b.siteJ[r])))
-    #   phi4M.prob[r,t] <- 1/(1+exp(-(mu.J + epsJ[t] + b.sexJ[2] + b.siteJ[r])))
-    #   phi5.prob[r,t] <- 1/(1+exp(-(mu.A + epsJ[t] + b.siteA[r])))
-    #   phi5M.prob[r,t] <- 1/(1+exp(-(mu.A + epsJ[t] + b.sexA[2] + b.siteA[r])))
-    #   phi6.prob[r,t] <- 1/(1+exp(-(mu.A + epsJ[t] + b.siteA[r])))
-    #   phi6M.prob[r,t] <- 1/(1+exp(-(mu.A + epsJ[t] + b.sexA[2] + b.siteA[r])))
-    #   phi7.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
-    #   phi7M.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
-    #   phi8.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
-    #   phi8M.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
-    #   phi9.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
-    #   phi9M.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phi3.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.siteJ[r])))
+    #   phi3M.prob[r,t] <- 1/(1+exp(-(mu.3 + epsJ[t] + b.sex3[2] + b.siteJ[r])))
+    #   phi4.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.siteJ[r])))
+    #   phi4M.prob[r,t] <- 1/(1+exp(-(mu.4 + epsJ[t] + b.sex4[2] + b.siteJ[r])))
+    #   phi5.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.siteJ[r])))
+    #   phi5M.prob[r,t] <- 1/(1+exp(-(mu.5 + epsJ[t] + b.sex5[2] + b.siteJ[r])))
+    #   phi6.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.siteJ[r])))
+    #   phi6M.prob[r,t] <- 1/(1+exp(-(mu.6 + epsJ[t] + b.sex6[2] + b.siteJ[r])))
+    #   phi7.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.siteA[r])))
+    #   phi7M.prob[r,t] <- 1/(1+exp(-(mu.7 + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phi8.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.siteA[r])))
+    #   phi8M.prob[r,t] <- 1/(1+exp(-(mu.8 + epsA[t] + b.sexA[2] + b.siteA[r])))
+    #   phi9.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.siteA[r])))
+    #   phi9M.prob[r,t] <- 1/(1+exp(-(mu.9 + epsA[t] + b.sexA[2] + b.siteA[r])))
     #   phiA.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.siteA[r])))
     #   phiAM.prob[r,t] <- 1/(1+exp(-(mu.A + epsA[t] + b.sexA[2] + b.siteA[r])))
     # }
@@ -534,18 +540,17 @@ inits <- list(int.phiP = 0.9, int.phi1 = 0.9, int.phi2 = 0.9, int.phi3 = 0.9, in
               z = z.init)
 
 ### parameters
-params <- c('int.p1', 'int.p2', 'int.pJ',
-            'int.pA', 'mu.P', 'mu.1', 'mu.2', 'mu.J', 'mu.A',
+params <- c('int.p1', 'int.p2', 'int.p3', 'int.pJ',
+            'int.pA', 'mu.P', 'mu.1', 'mu.2', 'mu.3', 'mu.J', 'mu.A',
             'p1.prob', 'p2.prob', 'p3.prob', 'p4.prob', 'p5.prob', 'p6.prob',
             'p7.prob', 'p8.prob', 'p9.prob', 'pA.prob',
-            'int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ',  'int.phiA',
+            'int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phiJ',  'int.phiA',
             'phiP.prob', 'phi1.prob', 'phi2.prob', 'phi3.prob',  'phi4.prob', 'phi5.prob', 
             'phi6.prob',  'phi7.prob',  'phi8.prob','phi9.prob',  'phiA.prob',
             # 'phiPM.prob', 'phi1M.prob', 'phi2M.prob', 'phi3M.prob', 'phi4M.prob', 'phi5M.prob',
             # 'phi6M.prob', 'phi7M.prob', 'phi8M.prob', 'phi9M.prob', 'phiAM.prob',
-            'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sexJ',
+            'b.massP', 'b.mass', 'b.sexP', 'b.sex1', 'b.sex2', 'b.sex3', 'b.sexJ',
             'b.sexA', 'b.siteP', 'b.site1', 'b.site2', 'b.siteJ', 'b.siteA',
-            'sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA',
             'epsP', 'eps1', 'eps2', 'epsJ', 'epsA')
 
 ### run model
@@ -588,9 +593,9 @@ noZ <- all_pars[which(!grepl('z', all_pars))]
 posts <- out[,noZ]
 outmat <- as.matrix(posts)
 
-plot(out[,c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')])
+plot(out[,c('int.phiP', 'int.phi1', 'int.phi2', 'int.phi3', 'int.phiJ', 'int.phiA')])
 
-plot(out[,c('b.sexP[1]', 'b.sex1[1]', 'b.sex2[1]', 'b.sexJ[1]', 'b.sexA[1]')])
+plot(out[,c('b.sexP[1]', 'b.sex1[1]', 'b.sex2[1]', 'b.sex3[1]', 'b.sexJ[1]', 'b.sexA[1]')])
 plot(out[,c('b.siteP[2]', 'b.site1[2]', 'b.site2[2]', 'b.siteJ[2]', 'b.siteA[2]')])
 
 post_sum <- data.frame(
@@ -601,7 +606,6 @@ post_sum$variable <- row.names(post_sum)
 
 ```
 
-###Just for looking after model runs, don't update figures!
 ```{r mean phi by sex}
 
 #mean rates
@@ -652,6 +656,7 @@ ggplot(mean.phi.sex.vals, aes(age, med, col = sex, group = sex)) +
 
 ```
 
+
 ```{r mean phi by site}
 
 #mean rates
@@ -701,6 +706,7 @@ ggplot(mean.phi.vals, aes(age, med, col = site, group = site)) +
 
 ```
 
+
 ```{r temporal variance}
 
 #temporal variance
@@ -715,10 +721,10 @@ phi.vals <- post_sum %>%
   transform(variable = sub("\\[.*", "", variable)) %>%
   transform(age = gsub('.prob', '', variable)) %>%
   transform(age = gsub('phi', '', age)) %>%
-  filter(age %in% c('P', '1', '2', '4', 'A')) %>%
-  transform(age_cat = factor(age, levels = c('P', '1', '2', '4', 'A'))) %>%
-  transform(age = factor(age, levels = c('P', '1', '2', '4', 'A'),
-                         labels = c('P', '1', '2', 'J', 'A'))) %>%
+  filter(age %in% c('P', '1', '2', '3', '4', 'A')) %>%
+  transform(age_cat = factor(age, levels = c('P', '1', '2', '3', '4', 'A'))) %>%
+  transform(age = factor(age, levels = c('P', '1', '2', '3', '4', 'A'),
+                         labels = c('P', '1', '2', '3', 'J', 'A'))) %>%
   merge(mean.phi.vals %>% filter(site == 'Pyramid Rock'), by = c('age'), suffixes = c('', '.mean'))
 
 #temporal variance with mean rates; intercept represents female, so can't show males
