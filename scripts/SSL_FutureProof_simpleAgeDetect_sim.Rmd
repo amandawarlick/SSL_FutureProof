@@ -178,20 +178,20 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 7 #1-45
+scenario <- 4 #1-45
 nsim <- 25
 
 thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
 thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
 
 #batch 7
-# batch <- 7
-# thresh <- thresh_small
-# v_thresh <- 'small_decrease'
+batch <- 7
+thresh <- thresh_small
+v_thresh <- 'small_decrease'
 
-batch <- 8
-thresh <- thresh_big
-v_thresh <- 'big_decrease'
+# batch <- 8
+# thresh <- thresh_big
+# v_thresh <- 'big_decrease'
 
 # batch <- 9
 # thresh <- thresh_small
@@ -689,20 +689,20 @@ saveRDS(cv, file = here::here('results', 'simpleAge', 'sims',
                                       paste('S.', scenario,  '_cv', batch, '.rds', sep = '')))
 
 #batch 7
-# saveRDS(dec_little10, file = here::here('results', 'simpleAge', 'sims',
-#                                       paste('S.', scenario,  '_dec_little10_', batch, '.rds', sep = '')))
-# saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims',
-#                                       paste('S.', scenario,  '_dec_little5_', batch, '.rds', sep = '')))
+saveRDS(dec_little10, file = here::here('results', 'simpleAge', 'sims',
+                                      paste('S.', scenario,  '_dec_little10_', batch, '.rds', sep = '')))
+saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims',
+                                      paste('S.', scenario,  '_dec_little5_', batch, '.rds', sep = '')))
 
 #batch 8
 #these are the same, just different true values, so used same calculation
-dec_big5 <- dec_little5
-dec_big10 <- dec_little10
-
-saveRDS(dec_big10, file = here::here('results', 'simpleAge', 'sims',
-                                      paste('S.', scenario,  '_dec_big10_', batch, '.rds', sep = '')))
-saveRDS(dec_big5, file = here::here('results', 'simpleAge', 'sims',
-                                      paste('S.', scenario,  '_dec_big5_', batch, '.rds', sep = '')))
+# dec_big5 <- dec_little5
+# dec_big10 <- dec_little10
+# 
+# saveRDS(dec_big10, file = here::here('results', 'simpleAge', 'sims',
+#                                       paste('S.', scenario,  '_dec_big10_', batch, '.rds', sep = '')))
+# saveRDS(dec_big5, file = here::here('results', 'simpleAge', 'sims',
+#                                       paste('S.', scenario,  '_dec_big5_', batch, '.rds', sep = '')))
 
 
 # 
@@ -1125,6 +1125,24 @@ scale_fill_gradient2(name = "Probability",
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
+
+#more facets?
+ggplot(plot_dat,
+       aes(x = factor(detection), y = variable, fill = value)) +
+        # aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+scale_fill_gradient2(name = "Probability of detecting change",
+                  mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
 
 #categorical colors
 ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),
