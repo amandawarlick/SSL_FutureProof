@@ -178,29 +178,20 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 4 #1-45
+scenario <- 41 #1-45
 nsim <- 25
 
 thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
 thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
 
 #batch 7
-batch <- 7
+batch <- 9 #7
 thresh <- thresh_small
 v_thresh <- 'small_decrease'
 
-# batch <- 8
+# batch <- 12 #10 #8
 # thresh <- thresh_big
 # v_thresh <- 'big_decrease'
-
-# batch <- 9
-# thresh <- thresh_small
-# v_thresh <- 'small_increase'
-# 
-# batch <- 10
-# thresh <- thresh_big
-# v_thresh <- 'big_increase'
-
 
 n.states <- 12
 n.obs <- 12
@@ -214,6 +205,12 @@ phi.pars.names <- c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA')
 # phi.pars <- c(eDPS_ests['int.phiP', 'med'], eDPS_ests['int.phi1', 'med'], 
 #                  eDPS_ests['int.phi2', 'med'], eDPS_ests['int.phiJ', 'med'], eDPS_ests['int.phiA', 'med'])
 phi.pars <- c(0.55, 0.7, 0.8, 0.88, 0.92) #generally from wDPS mean
+
+phi.sim <- c(phi.pars[1]-phi.pars[1]*thresh[1],
+             phi.pars[2]-phi.pars[2]*thresh[2],
+             phi.pars[3]-phi.pars[3]*thresh[3],
+             phi.pars[4]-phi.pars[4]*thresh[4],
+             phi.pars[5]-phi.pars[5]*thresh[5])
 
 #detection
 p.pars.names <- c('p1', 'p2', 'pJ', 'pA')
@@ -618,20 +615,40 @@ out_median[s,] <- c(summary(out[,c(params[1:9])])$q[,"50%"], max(rhats$psrf[,1],
 colnames(out_median) <- c(names(summary(out[,c(params[1:9])])$q[,"50%"]), 'max_rhat', 'max_rhat_par')
 
 #true values
-# out_true[s,] <- c(phi.pars, eval(parse(text = paste0('pars.', scenario)))[1:4])
-# colnames(out_true) <- c(phi.pars.names, p.pars.names)
-# 
-# #bias
-# bias[s,] <- c((summary(out[,"int.phiP"])$q["50%"]-out_true[s,1])/out_true[s,1],
-#               (summary(out[,"int.phi1"])$q["50%"]-out_true[s,2])/out_true[s,2],
-#               (summary(out[,"int.phi2"])$q["50%"]-out_true[s,3])/out_true[s,3],
-#               (summary(out[,"int.phiJ"])$q["50%"]-out_true[s,4])/out_true[s,4],
-#               (summary(out[,"int.phiA"])$q["50%"]-out_true[s,5])/out_true[s,5],
-#               (summary(out[,"int.p1"])$q["50%"]-out_true[s,6])/out_true[s,6],
-#               (summary(out[,"int.p2"])$q["50%"]-out_true[s,7])/out_true[s,7],
-#               (summary(out[,"int.pJ"])$q["50%"]-out_true[s,8])/out_true[s,8],
-#               (summary(out[,"int.pA"])$q["50%"]-out_true[s,9])/out_true[s,9])
-# colnames(bias) <- c(phi.pars.names, p.pars.names)
+out_true[s,] <- c(phi.sim, eval(parse(text = paste0('pars.', scenario)))[1:4])
+colnames(out_true) <- c(phi.pars.names, p.pars.names)
+
+#bias
+bias[s,] <- c((summary(out[,"int.phiP"])$q["50%"]-out_true[s,1])/out_true[s,1],
+              (summary(out[,"int.phi1"])$q["50%"]-out_true[s,2])/out_true[s,2],
+              (summary(out[,"int.phi2"])$q["50%"]-out_true[s,3])/out_true[s,3],
+              (summary(out[,"int.phiJ"])$q["50%"]-out_true[s,4])/out_true[s,4],
+              (summary(out[,"int.phiA"])$q["50%"]-out_true[s,5])/out_true[s,5],
+              (summary(out[,"int.p1"])$q["50%"]-out_true[s,6])/out_true[s,6],
+              (summary(out[,"int.p2"])$q["50%"]-out_true[s,7])/out_true[s,7],
+              (summary(out[,"int.pJ"])$q["50%"]-out_true[s,8])/out_true[s,8],
+              (summary(out[,"int.pA"])$q["50%"]-out_true[s,9])/out_true[s,9])
+colnames(bias) <- c(phi.pars.names, p.pars.names)
+
+#CV
+cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
+            sd(out_mat[,'mean.phi1'])/summary(out[,"mean.phi1"])$q["50%"],
+            sd(out_mat[,'mean.phi2'])/summary(out[,"mean.phi2"])$q["50%"],
+            sd(out_mat[,'mean.phiJ'])/summary(out[,"mean.phiJ"])$q["50%"],
+            sd(out_mat[,'mean.phiA'])/summary(out[,"mean.phiA"])$q["50%"])
+colnames(cv) <- phi.pars.names
+
+#rmse: sqrt(mean(theta.iter-T)^2)
+rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
+              sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
+              sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
+              sqrt(mean((out_mat[,'int.phiJ']-out_true[s,4])^2)),
+              sqrt(mean((out_mat[,'int.phiA']-out_true[s,5])^2)),
+              sqrt(mean((out_mat[,'int.p1']-out_true[s,6])^2)),
+              sqrt(mean((out_mat[,'int.p2']-out_true[s,7])^2)),
+              sqrt(mean((out_mat[,'int.pJ']-out_true[s,8])^2)),
+              sqrt(mean((out_mat[,'int.pA']-out_true[s,9])^2)))
+colnames(rmse) <- c(phi.pars.names, p.pars.names)
 
 #detecting departure from baseline phi
 cri_pars <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')
@@ -653,22 +670,6 @@ dec_little10[s,] <- phi.pars >=
           quantile(out_mat[,'mean.phiA'], probs = 0.95))
 colnames(dec_little10) <- phi.pars.names
 
-#batch 9 & 10
-# inc_little5[s,] <- phi.pars <= 
-#         c(quantile(out_mat[,'mean.phiP.5'], probs = 0.05), 
-#           quantile(out_mat[,'mean.phi1.5'], probs = 0.05),
-#           quantile(out_mat[,'mean.phi2.5'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiJ.5'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiA.5'], probs = 0.05))
-# colnames(inc_little5) <- phi.pars.names
-# 
-# inc_little10[s,] <- phi.pars <= 
-#         c(quantile(out_mat[,'mean.phiP'], probs = 0.05), 
-#           quantile(out_mat[,'mean.phi1'], probs = 0.05),
-#           quantile(out_mat[,'mean.phi2'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiJ'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiA'], probs = 0.05))
-# colnames(inc_little10) <- phi.pars.names
 
 cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
             sd(out_mat[,'mean.phi1'])/summary(out[,"mean.phi1"])$q["50%"],
@@ -681,20 +682,22 @@ colnames(cv) <- phi.pars.names
 } #simulations
 
 # save output
-# saveRDS(bias, file = here::here('results', 'simpleAge', 'sims', 
-#                                 paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
+saveRDS(bias, file = here::here('results', 'simpleAge', 'sims',
+                                paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
 saveRDS(out_median, file = here::here('results', 'simpleAge', 'sims', 
                                       paste('S.', scenario,  '_median', batch, '.rds', sep = '')))
 saveRDS(cv, file = here::here('results', 'simpleAge', 'sims', 
                                       paste('S.', scenario,  '_cv', batch, '.rds', sep = '')))
+saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',  
+                                      paste('S.', scenario,  '_rmse', batch, '.rds', sep = '')))
 
-#batch 7
+#batch 7, 9, 11
 saveRDS(dec_little10, file = here::here('results', 'simpleAge', 'sims',
                                       paste('S.', scenario,  '_dec_little10_', batch, '.rds', sep = '')))
 saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims',
                                       paste('S.', scenario,  '_dec_little5_', batch, '.rds', sep = '')))
 
-#batch 8
+#batch 8, 10, 12
 #these are the same, just different true values, so used same calculation
 # dec_big5 <- dec_little5
 # dec_big10 <- dec_little10
@@ -704,21 +707,6 @@ saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims',
 # saveRDS(dec_big5, file = here::here('results', 'simpleAge', 'sims',
 #                                       paste('S.', scenario,  '_dec_big5_', batch, '.rds', sep = '')))
 
-
-# 
-# #batch 9
-# saveRDS(inc_little10, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_little10_', batch, '.rds', sep = '')))
-# saveRDS(inc_little5, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_little5_', batch, '.rds', sep = '')))
-# 
-# #batch 10
-# # inc_big5 <- inc_little5
-# # inc_big10 <- inc_little10
-# saveRDS(inc_big10, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_big10_', batch, '.rds', sep = '')))
-# saveRDS(inc_big5, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_big5_', batch, '.rds', sep = '')))
 
 saveRDS(out, file = here::here('results', 'simpleAge', 'sims',
                                paste('S.', scenario, '_chains', batch, '.rds', sep = '')))

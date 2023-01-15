@@ -1,5 +1,5 @@
 ---
-title: "SSL Future Proof Project Update - Dec 2022"
+title: "SSL Future Proof Project Update - Jan 2023"
 output: html_document
 ---
 
@@ -31,7 +31,62 @@ The proportion of simulations where all parameters converged (Rhat < 1.1) was hi
 <!-- Table showing the scenario features (branding frequency, detection probability, cohort branding size (N)), the number of simulations per scenario (tot), and the proportion of those simulations where all parameters converged (Rhat < 1.1). Simulations where not all parameters converged were filtered out of the below results.   -->
 
 
-```{r convergence summary}
+```{r convergence summary 10}
+
+library(stringr)
+sc <- c(1:45)
+
+scenarios <- data.frame(scenario = c(sc),
+                        survey_freq = c(rep(1,15), rep(2,15), rep(3,15)),
+                        detection = c(rep(c('Low', 'Low', 'Low', 'Low', 'Low',
+                                            'Med', 'Med', 'Med', 'Med', 'Med', 
+                                            'High', 'High', 'High', 'High', 'High'), 3)),
+                        N = c(rep(c(50,75,100,150,200), 9)))
+                        
+med.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+
+converged <- data.frame()
+for (f in 1:length(med.files)) {
+
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 
+                                                     med.files[f]))[,'max_rhat']) %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(batch = str_sub(med.files[f], -6,-5)) %>%
+  transform(rhat = as.numeric(rhat))
+
+converged <- rbind(converged, rhats)
+
+}
+
+tot_runs <- converged %>%
+  filter(!is.na(rhat)) %>%
+  transform(type = ifelse(batch %in% c('n7', 'n9'), 'Small change', 'Big change')) %>%
+  group_by(scenario, type) %>%
+  dplyr::summarize(tot = n())
+
+prop_conv <- converged %>%
+  filter(rhat<1.10) %>%
+  transform(type = ifelse(batch %in% c('n7', 'n9'), 'Small change', 'Big change')) %>%
+  group_by(scenario, type) %>%
+  dplyr::summarize(conv = n(), .groups = 'keep') %>%
+  merge(tot_runs, by = c('scenario', 'type'), all = T) %>%
+  transform(prop_conv = round(conv/tot,2)) %>%
+  dplyr::select(scenario, type, tot, prop_conv)
+
+scenarios_tab <- scenarios %>%
+  merge(prop_conv, by = 'scenario', all = T) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+                                 labels = c('Annual', 'Biennial', 'Triennial')))
+
+kable(scenarios_tab)
+
+
+```
+
+
+```{r convergence summary 20}
 
 sc <- c(1:45)
 
@@ -64,13 +119,6 @@ tot_runs <- converged %>%
   group_by(scenario, batch) %>%
   dplyr::summarize(tot = n())
 
-still_need <- tot_runs %>%
-  transform(type = ifelse(batch %in% c(10, 14, 18, 22, 26, 30), 'small', 'big')) %>%
-  group_by(scenario, type) %>%
-  dplyr::summarize(tot = sum(tot)) %>%
-  transform(left = 50-tot) %>%
-  filter(left != 0)
-
 # prop_conv <- converged %>%
 #   filter(rhat<1.10) %>%
 #   merge(tot_runs %>% group_by(scenario) %>% dplyr::summarize(tot = sum()), by = c('scenario'), all = T) %>%
@@ -84,7 +132,14 @@ still_need <- tot_runs %>%
 #   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
 #                                  labels = c('Annual', 'Biennial', 'Triennial')))
 
+conv_summary <- tot_runs %>% 
+  transform(type = ifelse(batch %in% c(seq(10,31, by = 2)), 'Small change', 'Big change')) %>%
+  group_by(scenario, type) %>%
+  dplyr::summarize(total = sum(tot), .groups = 'keep')
+
 # kable(scenarios_tab)
+
+
 
 
 ```
@@ -130,7 +185,7 @@ mean.rel.bias <- data.frame(rel.bias) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
@@ -184,7 +239,7 @@ freq_labels <- c('1' = 'Annual', '2' = 'Biennial', '3' = 'Triennial')
 ```
 
 
-```{r results bias prepop, fig.width = 6, fig.height = 6}
+```{r results bias prepop, fig.width = 7, fig.height = 6}
 
 bias.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'bias', all.files = FALSE, full.names = F)
@@ -220,7 +275,8 @@ mean.rel.bias.20 <- data.frame(rel.bias.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', 
+            samp_size = 'Sample size') %>%
   transform(length = 20) %>%
   bind_rows(mean.rel.bias)
 
@@ -228,7 +284,7 @@ mean.rel.bias.20 <- data.frame(rel.bias.20) %>%
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
 freq_labels <- c('1' = 'Annual', '2' = 'Biennial', '3' = 'Triennial')
-occ_labels <- c('10' = '10 years', '20' = '20 years')
+occ_labels <- c('10' = '10 yrs', '20' = '20 yrs')
 
 #phi
 plot_dat <- mean.rel.bias.20 %>% filter(grepl('phi', variable)) %>%
@@ -308,22 +364,22 @@ dotplot_dat <- rel.bias.20 %>% transform(length = 20) %>%
 #              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
 #   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
 
-ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phiA')),
-       aes(x = detection, y = value, col = factor(length), group = length)) +
-  geom_point() + geom_line() +
-  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-  xlab('Detection') + ylab('Relative bias') +
-    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
-  
-  facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-             scales = 'free_x') +
-  
-  theme_bw() +
-  plot_theme(legend.position = 'top',
-             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-  scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+# ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phiA')),
+#        aes(x = detection, y = value, col = factor(length), group = length)) +
+#   geom_point() + geom_line() +
+#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+#   xlab('Detection') + ylab('Relative bias') +
+#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+#   # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+#   
+#   facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+#              scales = 'free_x') +
+#   
+#   theme_bw() +
+#   plot_theme(legend.position = 'top',
+#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
 
 
 ```
@@ -369,7 +425,7 @@ mean.rmse <- data.frame(rmse) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10) 
 
 
@@ -419,7 +475,7 @@ mean.rmse <- data.frame(rmse) %>%
 ```
 
 
-```{r results rmse prepop, fig.width = 6, fig.align = 6}
+```{r results rmse prepop, fig.width = 7, fig.height = 6}
 
 rmse.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'rmse', all.files = FALSE, full.names = F)
@@ -455,7 +511,7 @@ mean.rmse.20 <- data.frame(rmse.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 20) %>%
   bind_rows(mean.rmse)
 
@@ -515,7 +571,7 @@ dotplot_dat <-rmse.20 %>% transform(length = 20) %>%
     dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   #filter out detection params
   filter(!is.na(variable))
 
@@ -562,19 +618,20 @@ Lowest CV values are achieved with annual branding and higher cohort sample size
 
 ```{r results cv}
 
-cv.files4 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv4', all.files = FALSE, full.names = F)
-
-cv.files5 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv5', all.files = FALSE, full.names = F)
-
-cv.files6 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv6', all.files = FALSE, full.names = F)
 
 cv.files7 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
                     pattern = 'cv7', all.files = FALSE, full.names = F)
 
-cv.files <- c(cv.files4, cv.files5, cv.files6, cv.files7)
+cv.files8 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv8', all.files = FALSE, full.names = F)
+
+cv.files9 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv9', all.files = FALSE, full.names = F)
+
+cv.files10 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv10', all.files = FALSE, full.names = F)
+
+cv.files <- c(cv.files6, cv.files7, cv.files8, cv.files9, cv.files10)
 
 cv <- data.frame()
 for (f in 1:length(cv.files)) {
@@ -606,7 +663,7 @@ mean.cv <- data.frame(cv) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 
@@ -640,7 +697,7 @@ mean.cv.thresh <- data.frame(cv) %>%
   dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 
@@ -669,7 +726,7 @@ mean.cv.thresh <- data.frame(cv) %>%
 ```
 
 
-```{r results cv prepop}
+```{r results cv prepop, fig.height = 6, fig.width = 7}
 
 cv.files10 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'cv10', all.files = FALSE, full.names = F)
@@ -743,7 +800,7 @@ mean.cv.20 <- data.frame(cv.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 20) %>%
   bind_rows(mean.cv)
 
@@ -780,7 +837,7 @@ mean.cv.thresh.20 <- data.frame(cv %>% transform(length = 10)) %>%
   dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size')
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size')
 
 
 #phi
@@ -866,7 +923,7 @@ mean.cri <- data.frame(cri.all) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') 
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') 
 
 
 # plot_dat <- mean.cri %>% filter(grepl('phi', variable)) %>%
@@ -915,22 +972,22 @@ mean.cri <- data.frame(cri.all) %>%
 #     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
 
 #categorical colors
-# ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),
-#        # aes(x = factor(detection), y = variable, fill = value)) +
-#         aes(x = factor(detection), y = variable, fill = value_cat)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T,
-#              labeller = labeller(survey_freq = freq_labels),
-#              scales = 'free_x') +
-#   theme_bw() +
-#   theme(legend.position = 'top',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
-#   scale_fill_manual(name = "Probability of detecting change in survival",
-#                     values = c('firebrick3', 'orange', 'steelblue2'))
-# 
+ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),
+       # aes(x = factor(detection), y = variable, fill = value)) +
+        aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    values = c('firebrick3', 'orange', 'steelblue2'))
+
 # ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')),
 #        # aes(x = factor(detection), y = variable, fill = value)) +
 #         aes(x = factor(detection), y = variable, fill = value_cat)) +
@@ -979,7 +1036,7 @@ mean.cri <- data.frame(cri.all) %>%
 ```
 
 
-```{r results threshold prepop, fig.width = 7, fig.height = 6}
+```{r results threshold prepop, fig.width = 10, fig.height = 7}
 
 library(stringr)
 
@@ -1030,7 +1087,7 @@ mean.cri.20 <- data.frame(cri.all.20) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   bind_rows(mean.cri)
 
 
@@ -1045,7 +1102,7 @@ plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
 
 
 #continuous color scale
-#decrease in survival with 15 and 20 yrs of data
+#big decrease in survival 
 ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')), 
        aes(x = factor(detection), y = variable, fill = value)) +
         # aes(x = factor(detection), y = variable, fill = value_cat)) +
@@ -1062,106 +1119,29 @@ scale_fill_gradient2(name = "Probability of detecting change",
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
 
-#decrease in survival with 20 yrs of data
-# ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 20),
-#        aes(x = factor(detection), y = variable, fill = value)) +
-#         # aes(x = factor(detection), y = variable, fill = value_cat)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T,
-#              labeller = labeller(survey_freq = freq_labels),
-#              scales = 'free_x') +
-# scale_fill_gradient2(name = "Probability of detecting change",
-#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
-#   theme_bw() +
-#   theme(legend.position = 'top',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
-
-# #more facets?
-# ggplot(plot_dat,
-#        aes(x = factor(detection), y = variable, fill = value)) +
-#         # aes(x = factor(detection), y = variable, fill = value_cat)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
-#              labeller = labeller(survey_freq = freq_labels),
-#              scales = 'free_x') +
-# scale_fill_gradient2(name = "Probability of detecting change",
-#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
-#   theme_bw() +
-#   theme(legend.position = 'top',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
-
-#categorical colors
-# ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),
-#        # aes(x = factor(detection), y = variable, fill = value)) +
-#         aes(x = factor(detection), y = variable, fill = value_cat)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T,
-#              labeller = labeller(survey_freq = freq_labels),
-#              scales = 'free_x') +
-#   theme_bw() +
-#   theme(legend.position = 'top',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
-#   scale_fill_manual(name = "Probability of detecting change in survival",
-#                     values = c('firebrick3', 'orange', 'steelblue2'))
-# 
-# ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')),
-#        # aes(x = factor(detection), y = variable, fill = value)) +
-#         aes(x = factor(detection), y = variable, fill = value_cat)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T,
-#              labeller = labeller(survey_freq = freq_labels),
-#              scales = 'free_x') +
-#   theme_bw() +
-#   theme(legend.position = 'top',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
-#   scale_fill_manual(name = "Probability of detecting change in survival",
-#                     values = c('firebrick3', 'orange', 'steelblue2'))
-# 
-# #dot plots
-# dotplot_dat <- cri.all.20 %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(threshold, length, variable, detection, survey_freq, N) %>%
-#   # dplyr::summarize(value = mean(value),
-#   #                  lower = quantile(value, probs = 0.025),
-#   #                  upper = quantile(value, probs = 0.975),
-#     dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-#   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-#   transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
-#   transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big', 'inc_little', 'inc_big'),
-#                                labels = c('Small decrease', 'Big decrease', 'Small increase', 'Big increase')))
-# 
-# 
-# ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease')),
-#        aes(x = N, y = value, col = length, group = length)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Sample size') + ylab('Probability of detecting change') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   facet_grid(variable + detection ~ survey_freq + threshold, label = 'label_parsed', scales = 'free') +
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Threshold')
+#categorical
+ggplot(plot_dat,
+       aes(x = factor(detection), y = variable, fill = value_cat), alpha = 0.3) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    # values = c('firebrick3', 'orange', 'steelblue2'))
+                    values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
 
 
 ```
 
 
-```{r more facets, fig.width = 7.5, fig.height = 9}
+```{r more facets, fig.width = 9, fig.height = 12}
 
 plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
@@ -1170,7 +1150,8 @@ plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
                                ifelse(value >=0.5 & value < 0.8, '0.5-0.8', '>0.8'))) %>%
   transform(value_cat = factor(value_cat, levels = c('<0.5', '0.5-0.8', '>0.8'))) %>%
   transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big', 'inc_little', 'inc_big'),
-                               labels = c('Small decrease', 'Big decrease', 'Small increase', 'Big increase')))
+                               labels = c('Small decrease', 'Big decrease', 'Small increase', 'Big increase'))) %>%
+  transform(samp_size = 'Sample size & study length')
 
 #more facets
 ggplot(plot_dat,
@@ -1188,6 +1169,23 @@ scale_fill_gradient2(name = "Probability of detecting change",
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+
+ggplot(plot_dat,
+       aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    # values = c('firebrick3', 'orange', 'steelblue2'))
+                    values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
 ```
 

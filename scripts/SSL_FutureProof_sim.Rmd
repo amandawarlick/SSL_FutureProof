@@ -195,15 +195,6 @@ v_thresh <- 'small_decrease'
 # thresh <- thresh_big
 # v_thresh <- 'big_decrease'
 
-# batch <- 12
-# thresh <- thresh_small
-# v_thresh <- 'small_increase'
-# 
-# batch <- 13
-# thresh <- thresh_big
-# v_thresh <- 'big_increase'
-
-
 n.states <- 12
 n.obs <- 12
 n.occasions <- 20 #19 years of resighting
@@ -652,23 +643,6 @@ dec_little10[s,] <- phi.pars >=
           quantile(out_mat[,'mean.phiJ'], probs = 0.95),
           quantile(out_mat[,'mean.phiA'], probs = 0.95))
 colnames(dec_little10) <- phi.pars.names
-
-#batch 12 & 13
-# inc_little5[s,] <- phi.pars <= 
-#         c(quantile(out_mat[,'mean.phiP.15'], probs = 0.05), 
-#           quantile(out_mat[,'mean.phi1.15'], probs = 0.05),
-#           quantile(out_mat[,'mean.phi2.15'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiJ.15'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiA.15'], probs = 0.05))
-# colnames(inc_little5) <- phi.pars.names
-# 
-# inc_little10[s,] <- phi.pars <= 
-#         c(quantile(out_mat[,'mean.phiP'], probs = 0.05), 
-#           quantile(out_mat[,'mean.phi1'], probs = 0.05),
-#           quantile(out_mat[,'mean.phi2'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiJ'], probs = 0.05),
-#           quantile(out_mat[,'mean.phiA'], probs = 0.05))
-# colnames(inc_little10) <- phi.pars.names
 
 
 } #simulations
