@@ -1,0 +1,32 @@
+---
+title: "SSL Future Proof Project Update - Jan 2023"
+output: html_document
+---
+
+```{r setup, include=FALSE, fig.align = 'center'}
+
+knitr::opts_chunk$set(echo = FALSE, eval = T, message = F, warning = F, fig.align = 'center')
+
+library(here) #v1.0.1
+library(dplyr) #v1.0.5
+library(nimble) #v0.12.1
+library(coda)
+library(ggh4x)
+library(readr)
+library(knitr)
+library(Hmisc)
+library(stringr)
+
+source(here::here('scripts', 'PlotTheme.R'))
+
+```
+
+### Introduction (outline)  
+
+
+
+### Methods  
+
+
+
+

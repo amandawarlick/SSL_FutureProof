@@ -1,5 +1,5 @@
 ---
-title: "SSL Future Proof Project Update - Nov 2022"
+title: "SSL Future Proof Project Update - Dec 2022"
 output: html_document
 ---
 
@@ -15,6 +15,7 @@ library(ggh4x)
 library(readr)
 library(knitr)
 library(Hmisc)
+library(stringr)
 
 source(here::here('scripts', 'PlotTheme.R'))
 
@@ -235,7 +236,7 @@ ggplot(p.vals, aes(year, med)) +
 
 ### Simulation analysis
 
-The above model was fit using simulated data across 45 scenarios with varying sample sizes (N = 50, 75, 100, 150, 200), branding frequency (annual, biennial, triennial), and detection rates (low, medium, high; low and high = +/- 20% of medium). The only difference between the model in the simulation versus that fit with real data is grouped mean detection rates (pups, yearlings, juveniles, adults). No temporal variance was estimated in detection. Model performance was examined using relative bias, RMSE, and coefficient of variation. Branding spanned 11 years for 10 years of resighting. *Resighting frequency was assumed to be every year in all scenarios (reasonable based on future reliance on remote cameras?).* 
+The above model was fit using simulated data across 45 scenarios with varying branding cohort sizes (N = 50, 75, 100, 150, 200), branding frequency (annual, biennial, triennial), and detection rates (low, medium, high; low and high = +/- 20% of medium). The only difference between the model in the simulation versus that fit with real data is grouped mean detection rates (pups, yearlings, juveniles, adults). No temporal variance was estimated in detection. Model performance was examined using relative bias, RMSE, and coefficient of variation. Branding spanned 20 years for 19 years of resighting. *Resighting frequency was assumed to be every year in all scenarios (reasonable based on future reliance on remote cameras?).* 
 
 The proportion of simulations where all parameters converged (Rhat < 1.1) was high (>95%), though convergence was a bit lower for scenarios with 200 individuals and triennial branding. 
 
@@ -253,16 +254,17 @@ scenarios <- data.frame(scenario = c(sc),
                                             'High', 'High', 'High', 'High', 'High'), 3)),
                         N = c(rep(c(50,75,100,150,200), 9)))
                         
-med.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+med.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'median', all.files = FALSE, full.names = F)
 
 
 converged <- data.frame()
 for (f in 1:length(med.files)) {
 
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 'prePop',
                                                      med.files[f]))[,'max_rhat']) %>%
   transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(batch = str_sub(med.files[f], -6,-5)) %>%
   transform(rhat = as.numeric(rhat))
 
 converged <- rbind(converged, rhats)
@@ -271,7 +273,7 @@ converged <- rbind(converged, rhats)
 
 tot_runs <- converged %>%
   filter(!is.na(rhat)) %>%
-  group_by(scenario) %>%
+  group_by(scenario, batch) %>%
   dplyr::summarize(tot = n())
 
 prop_conv <- converged %>%
@@ -287,26 +289,26 @@ scenarios_tab <- scenarios %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial')))
 
-# kable(scenarios_tab)
+kable(scenarios_tab)
 
 
 ```
 
 #### Relative bias  
-Low bias was generally found for all scenarios, though higher relative bias is evident with triennial branding and low detection probability. Estimates are generally biased high for pups and juveniles and biased low for the other ages. Patterns in bias for survival estimates are less apparent across levels of detection and sample size than I would have expected, which are more evident in the other model performance metrics below. 
-<!-- One exception to this is estimates of juvenile detection probability - might be something for me to check on.  -->
+Relative bias was generally low for all scenarios, though higher relative bias is evident with triennial branding and low detection probability. Estimates are generally biased high (reds) for pups, yearlings, and juveniles and biased low for age-2 and adults. Patterns in bias for survival estimates are less apparent across levels of detection and sample size than I would have expected, which are more evident in the other model performance metrics below.
+
 
 ```{r results bias}
 
-bias.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+bias.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'bias', all.files = FALSE, full.names = F)
 
 rel.bias <- data.frame()
 for (f in 1:length(bias.files)) {
-temp.bias <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+temp.bias <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                   bias.files[f])))
 #use gsub on bias files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims',
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                      gsub('bias', 'median', bias.files[f])))[,'max_rhat'])
 
 temp.bias$rhat <- as.numeric(rhats$rhat)
@@ -383,20 +385,22 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
 
 ```
 
+
 #### RMSE  
-Model performance in terms of RMSE follows an expected pattern with lowest RMSE in scenarios with annual branding frequency and generally higher cohort sizes. 
+RMSE is a combined measure of bias and variance and is generally very low. Model performance in terms of RMSE follows an expected pattern with lowest RMSE in scenarios with annual branding frequency and higher cohort sizes. RMSE values are generally higher for age-2 and younger, again likely due to their higher variability by design. 
+
 
 ```{r results rmse}
 
-rmse.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+rmse.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = 'rmse', all.files = FALSE, full.names = F)
 
 rmse <- data.frame()
 for (f in 1:length(rmse.files)) {
-temp.rmse <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+temp.rmse <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                   rmse.files[f])))
 #use gsub on rmse files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                      gsub('rmse', 'median', rmse.files[f])))[,'max_rhat'])
 
 temp.rmse$rhat <- as.numeric(rhats$rhat)
@@ -446,57 +450,81 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #p
-plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
-  transform(variable = factor(variable, 
-                              levels = c('p1', 'p2', 'pJ', 'pA'), 
-                              labels = p_pars))
-
-ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-             labeller = labeller(survey_freq = freq_labels),
-             scales = 'free_x') +
- scale_fill_gradient2(name = "RMSE",
-                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
-  theme_bw() +
-  theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+# plot_dat <- mean.rmse %>% filter(variable %in% c('p1', 'p2', 'pJ', 'pA')) %>%
+#   transform(variable = factor(variable, 
+#                               levels = c('p1', 'p2', 'pJ', 'pA'), 
+#                               labels = p_pars))
+# 
+# ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+#   geom_tile(color = 'grey50') +
+#   xlab('Detection') +
+#   ylab('Parameter') +
+#   facet_nested(samp_size + N ~ survey_frequency + survey_freq, drop = T, 
+#              labeller = labeller(survey_freq = freq_labels),
+#              scales = 'free_x') +
+#  scale_fill_gradient2(name = "RMSE",
+#                       mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+#   theme_bw() +
+#   theme(legend.position = 'right',
+#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+#         legend.text = element_text(size = 8, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 ```
 
+
 #### Coefficient of variation (CV)  
-Lowest CV values are achieved with annual branding and higher cohort sample size. Estimates for pup survival have higher CV's even with the highest sample sizes. Biennial and triennial branding frequency does result in CV's near but also above the 0.125 rate that is often mentioned in the MMPA permit applications. 
+Lowest CV values are achieved with annual branding and higher cohort sample size. For biennial and triennial branding frequency, estimates for pup survival have higher CV's even with the highest sample sizes (likely because they have a higher simulated standard deviation). Biennial (n = 50) and triennial (all sample sizes) branding frequency does result in CV's above the 0.125 rate that is often mentioned in the MMPA permit applications.
 
 ```{r results cv}
 
-# cv.files3 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-#                     pattern = 'cv3', all.files = FALSE, full.names = F)
+cv.files10 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv10', all.files = FALSE, full.names = F)
 
-cv.files4 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv4', all.files = FALSE, full.names = F)
+cv.files11 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv11', all.files = FALSE, full.names = F)
 
-cv.files5 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv5', all.files = FALSE, full.names = F)
+cv.files14 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv14', all.files = FALSE, full.names = F)
 
-cv.files6 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv6', all.files = FALSE, full.names = F)
+cv.files15 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv15', all.files = FALSE, full.names = F)
 
-cv.files7 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = 'cv7', all.files = FALSE, full.names = F)
+cv.files18 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv18', all.files = FALSE, full.names = F)
 
-cv.files <- c(cv.files4, cv.files5, cv.files6, cv.files7)
+cv.files19 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv19', all.files = FALSE, full.names = F)
+
+cv.files22 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'),
+pattern = 'cv22', all.files = FALSE, full.names = F)
+
+cv.files23 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv23', all.files = FALSE, full.names = F)
+
+cv.files26 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv26', all.files = FALSE, full.names = F)
+
+cv.files27 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv27', all.files = FALSE, full.names = F)
+
+cv.files30 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv30', all.files = FALSE, full.names = F)
+
+cv.files31 <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
+                    pattern = 'cv31', all.files = FALSE, full.names = F)
+
+
+cv.files <- c(cv.files10, cv.files11, cv.files14, cv.files15, cv.files18, cv.files19,
+              cv.files22, cv.files23, cv.files26, cv.files27, cv.files30, cv.files31)
 
 cv <- data.frame()
 for (f in 1:length(cv.files)) {
-temp.cv <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+temp.cv <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                   cv.files[f])))
 #use gsub on cv files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                      gsub('cv', 'median', cv.files[f])))[,'max_rhat'])
 
 temp.cv$rhat <- as.numeric(rhats$rhat)
@@ -582,9 +610,10 @@ scale_fill_gradient2(name = "Probability of cv < 0.125",
 ```
 
 #### Detecting changes in survival  
-To examine the ability to detect a change in survival from a "baseline", I generated annual survival estimates using a logit normal distribution with a mean rate derived by multiplying the empirical mean by an age-based change threshold and a standard deviation from the empirical estimates. I then examined the probability of whether the credible intervals for each survival rate excluded the original "baseline" rate at 5 years and 10 years into the study. I examined the ability to detect a "small" decrease (15%, 10%, 5%, 2.5%) and a "big" decrease (20%, 15%, 10%, 5%) in survival for pups, age-1:2, juveniles, and adults, respectively. 
+To examine the ability to detect a change in survival from a "baseline", I generated annual survival estimates using a logit normal distribution with a mean rate derived by multiplying the empirical mean by an age-based change threshold and a standard deviation from the empirical estimates. I then examined the probability of whether the credible intervals for each survival rate excluded the original "baseline" rate at 15 years and 20 years into the study. I examined the ability to detect a "small" decrease (15%, 10%, 5%, 2.5%) and a "big" decrease (20%, 15%, 10%, 5%) in survival for pups, age-1:2, juveniles, and adults, respectively. 
 
-The first figure shows the probability of detecting a big decrease at 5 versus 10 years. The second figure shows the probability of detecting a small versus big decrease at 10 years. 
+The first figure shows the probability of detecting a big decrease at 15 versus 20 years, which are fairly similar. The second figure shows the probability of detecting a small versus big decrease at 20 years. This figure generally illustrates the trade-offs between branding cohort size and branding frequency for the probability of detecting small (harder) and big (easier) changes in survival. For example, detecting small changes in survival over a 20-year period is fairly unlikely without annual branding. Detecting bigger changes in survival with a biennial branding frequency become more probable with higher sample sizes. 
+
 
 ```{r results threshold}
 
@@ -600,23 +629,23 @@ for (a in 1:length(append)) { #files for period length
 
 for (j in 1:length(cri.scenarios)) {
   
-cri.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+cri.files <- list.files(path = here::here('results', 'simpleAge', 'sims', 'prePop'), 
                     pattern = paste0(cri.scenarios[j],append[a]), all.files = FALSE, full.names = F)
 
 cri <- data.frame()
 for (f in 1:length(cri.files)) {
-temp.cri <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
+temp.cri <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop',
                                                   cri.files[f])))
 #use gsub on cri files rather than use different list to make sure they match
-rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims',
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims', 'prePop', 
                                                      gsub('median_', 'median', gsub(paste0(cri.scenarios[j], append[a]), 'median', cri.files[f]))))[,'max_rhat'])
 
 temp.cri$rhat <- as.numeric(rhats$rhat)
 temp <- temp.cri %>% 
   reshape2::melt(id.vars = 'rhat') %>%
   transform(scenario = parse_number(gsub('S.', '', cri.files[f]))) %>%
-  transform(run = str_sub(cri.files[f], -5,-5)) %>%
-  transform(length = append[a]) %>%
+  transform(run = str_sub(cri.files[f], -6,-5)) %>%
+  transform(length = append[a]+10) %>%
   # transform(length = ifelse(grepl('little5', cri.files[f]) | grepl('big5', cri.files[f]), 5, 10)) %>%
   transform(threshold = cri.scenarios[j])
 
@@ -630,13 +659,12 @@ cri.all <- rbind(cri, cri.all)
 } #j
 
 mean.cri <- data.frame(cri.all) %>%
+  #are these just all the unfinished/unfilled sim dataframe rows? 
+  filter(!is.na(value)) %>%
     merge(scenarios, by = 'scenario', all = F) %>%
-  #cri only correct for runs 5 and greater
-  # filter(run > 6) %>%
   group_by(threshold, variable, detection, N, survey_freq, length) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
-                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size')
 
@@ -652,7 +680,7 @@ plot_dat <- mean.cri %>% filter(grepl('phi', variable)) %>%
 
 
 #continuous color scale
-#decrease in survival with 5 and 10 yrs of data
+#decrease in survival with 15 and 20 yrs of data
 ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')), 
        aes(x = factor(detection), y = variable, fill = value)) +
         # aes(x = factor(detection), y = variable, fill = value_cat)) +
@@ -662,15 +690,15 @@ ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')),
   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
              scales = 'free_x') +
-scale_fill_gradient2(name = "Probability",
+scale_fill_gradient2(name = "Probability of detecting change",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
 
-#decrease in survival with 10 yrs of data
-ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10), 
+#decrease in survival with 20 yrs of data
+ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 20), 
        aes(x = factor(detection), y = variable, fill = value)) +
         # aes(x = factor(detection), y = variable, fill = value_cat)) +
   geom_tile(color = 'grey50') +
@@ -679,12 +707,29 @@ ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & 
   facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
              scales = 'free_x') +
-scale_fill_gradient2(name = "Probability",
+scale_fill_gradient2(name = "Probability of detecting change",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
+
+#more facets?
+# ggplot(plot_dat, 
+#        aes(x = factor(detection), y = variable, fill = value)) +
+#         # aes(x = factor(detection), y = variable, fill = value_cat)) +
+#   geom_tile(color = 'grey50') +
+#   xlab('Detection') +
+#   ylab('Parameter') +
+#   facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T, 
+#              labeller = labeller(survey_freq = freq_labels),
+#              scales = 'free_x') +
+# scale_fill_gradient2(name = "Probability of detecting change",
+#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #categorical colors
 # ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),

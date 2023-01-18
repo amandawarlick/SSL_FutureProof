@@ -175,10 +175,23 @@ getP <- nimbleFunction(
 
 ```
 
+
 ```{r scenarios and parameters}
 
-scenario <- 6 #1-45
-nsim <- 30
+scenario <- 41 #1-45
+nsim <- 25
+
+thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
+thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
+
+#batch 7
+batch <- 9 #7
+thresh <- thresh_small
+v_thresh <- 'small_decrease'
+
+# batch <- 12 #10 #8
+# thresh <- thresh_big
+# v_thresh <- 'big_decrease'
 
 n.states <- 12
 n.obs <- 12
@@ -187,8 +200,17 @@ n.occasions <- 11 #10 years of resighting
 #define rates
 #survival
 phi.pars.names <- c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA')
-phi.pars <- c(eDPS_ests['int.phiP', 'med'], eDPS_ests['int.phi1', 'med'], 
-                 eDPS_ests['int.phi2', 'med'], eDPS_ests['int.phiJ', 'med'], eDPS_ests['int.phiA', 'med'])
+
+#not sure about how low phiP and phiA are for eDPS
+# phi.pars <- c(eDPS_ests['int.phiP', 'med'], eDPS_ests['int.phi1', 'med'], 
+#                  eDPS_ests['int.phi2', 'med'], eDPS_ests['int.phiJ', 'med'], eDPS_ests['int.phiA', 'med'])
+phi.pars <- c(0.55, 0.7, 0.8, 0.88, 0.92) #generally from wDPS mean
+
+phi.sim <- c(phi.pars[1]-phi.pars[1]*thresh[1],
+             phi.pars[2]-phi.pars[2]*thresh[2],
+             phi.pars[3]-phi.pars[3]*thresh[3],
+             phi.pars[4]-phi.pars[4]*thresh[4],
+             phi.pars[5]-phi.pars[5]*thresh[5])
 
 #detection
 p.pars.names <- c('p1', 'p2', 'pJ', 'pA')
@@ -270,7 +292,7 @@ out_median <- matrix(NA, nsim, n_params+2) #rhat storage
 out_true <- matrix(NA, nsim, n_params) 
 bias <- rmse <- matrix(NA, nsim, n_params) 
 
-cv <- dif_low_little <- dif_high_little <- dif_low_big <- dif_high_big <- matrix(NA, nsim, length(phi.pars)) 
+cv <- dec_little5 <- dec_little10 <- inc_little5 <- inc_little10 <- matrix(NA, nsim, length(phi.pars)) 
 
 pars <- eval(parse(text = paste0('pars.', scenario)))
 
@@ -282,16 +304,40 @@ pars <- eval(parse(text = paste0('pars.', scenario)))
 
 for (s in 1:nsim) {
   
-phi.pars.t <- data.frame(phiP = rlogitnorm(n.occasions-1, eDPS_ests['mu.P', 'med'], 
+# phi.pars.t <- data.frame(phiP = rlogitnorm(n.occasions-1, eDPS_ests['mu.P', 'med'], 
+#                                            eDPS_ests['sigmaP', 'med']),
+#                          phi1 = rlogitnorm(n.occasions-1, eDPS_ests['mu.1', 'med'], 
+#                                            eDPS_ests['sigma1', 'med']),
+#                          phi2 = rlogitnorm(n.occasions-1, eDPS_ests['mu.2', 'med'], 
+#                                            eDPS_ests['sigma2', 'med']),
+#                          phiJ = rlogitnorm(n.occasions-1, eDPS_ests['mu.J', 'med'], 
+#                                            eDPS_ests['sigmaJ', 'med']),
+#                          phiA = rlogitnorm(n.occasions-1, eDPS_ests['mu.A', 'med'], 
+#                                            eDPS_ests['sigmaA', 'med']))
+
+#decreasing scenarios
+phi.pars.t <- data.frame(phiP = rlogitnorm(n.occasions-1, qlogis(phi.pars[1]-(phi.pars[1]*thresh[1])), 
                                            eDPS_ests['sigmaP', 'med']),
-                         phi1 = rlogitnorm(n.occasions-1, eDPS_ests['mu.1', 'med'], 
+                         phi1 = rlogitnorm(n.occasions-1, qlogis(phi.pars[2]-(phi.pars[2]*thresh[2])), 
                                            eDPS_ests['sigma1', 'med']),
-                         phi2 = rlogitnorm(n.occasions-1, eDPS_ests['mu.2', 'med'], 
+                         phi2 = rlogitnorm(n.occasions-1, qlogis(phi.pars[3]-(phi.pars[3]*thresh[3])), 
                                            eDPS_ests['sigma2', 'med']),
-                         phiJ = rlogitnorm(n.occasions-1, eDPS_ests['mu.J', 'med'], 
+                         phiJ = rlogitnorm(n.occasions-1, qlogis(phi.pars[4]-(phi.pars[4]*thresh[4])), 
                                            eDPS_ests['sigmaJ', 'med']),
-                         phiA = rlogitnorm(n.occasions-1, eDPS_ests['mu.A', 'med'], 
+                         phiA = rlogitnorm(n.occasions-1, qlogis(phi.pars[5]-(phi.pars[5]*thresh[5])), 
                                            eDPS_ests['sigmaA', 'med']))
+
+#increasing scenarios
+# phi.pars.t <- data.frame(phiP = rlogitnorm(n.occasions-1, qlogis(phi.pars[1]+(phi.pars[1]*thresh[1])), 
+#                                            eDPS_ests['sigmaP', 'med']),
+#                          phi1 = rlogitnorm(n.occasions-1, qlogis(phi.pars[2]+(phi.pars[2]*thresh[2])), 
+#                                            eDPS_ests['sigma1', 'med']),
+#                          phi2 = rlogitnorm(n.occasions-1, qlogis(phi.pars[3]+(phi.pars[3]*thresh[3])), 
+#                                            eDPS_ests['sigma2', 'med']),
+#                          phiJ = rlogitnorm(n.occasions-1, qlogis(phi.pars[4]+(phi.pars[4]*thresh[4])), 
+#                                            eDPS_ests['sigmaJ', 'med']),
+#                          phiA = rlogitnorm(n.occasions-1, qlogis(phi.pars[5]+(phi.pars[5]*thresh[5])), 
+#                                            eDPS_ests['sigmaA', 'med']))
 
 # 1. State process matrix
 totrel <- sum(marked)*(n.occasions-1)
@@ -458,7 +504,7 @@ SSL_CJS <- nimbleCode({
     int.phiJ ~ dunif(0,1)
     int.phiA ~ dunif(0,1)
     
-    #calculating cv
+    #for calculating cv
     mean.phiP <- mean(phiP[1:n_ind,1:(n.occasions-1)])
     mean.phi1 <- mean(phi1[1:n_ind,2:(n.occasions-1)])
     mean.phi2 <- mean(phi2[1:n_ind,3:(n.occasions-1)])
@@ -484,13 +530,15 @@ SSL_CJS <- nimbleCode({
                         phi9[1:n_ind,10:(n.occasions-1)], 
                         phiA[1:n_ind,10:(n.occasions-1)]))
 
-    # sd.phiP <- sd(phiP[1:n_ind,1:(n.occasions-1)])
-    # sd.phi1 <- sd(phi1[1:n_ind,2:(n.occasions-1)])
-    # sd.phi2 <- sd(phi2[1:n_ind,3:(n.occasions-1)])
-    # sd.phiJ <- sd(c(phi3[1:n_ind,4:(n.occasions-1)], phi4[1:n_ind,5:(n.occasions-1)]))
-    # sd.phiA <- sd(c(phi5[1:n_ind,6:(n.occasions-1)], phi6[1:n_ind,7:(n.occasions-1)]),
-    #               c(phi7[1:n_ind,8:(n.occasions-1)], phi8[1:n_ind,9:(n.occasions-1)]),
-    #               c(phi9[1:n_ind,10:(n.occasions-1)], phiA[1:n_ind,10:(n.occasions-1)]))
+    #mean phi at 5 yrs
+    mean.phiP.5 <- mean(phiP[1:n_ind,1:(n.occasions-5)])
+    mean.phi1.5 <- mean(phi1[1:n_ind,2:(n.occasions-5)])
+    mean.phi2.5 <- mean(phi2[1:n_ind,3:(n.occasions-5)])
+
+    mean.phiJ.5 <- mean(c(phi3[1:n_ind,4:(n.occasions-5)], 
+                        phi4[1:n_ind,5:(n.occasions-5)]))
+    mean.phiA.5 <- mean(c(phi5[1:n_ind,6:(n.occasions-5)]))
+    
 
     #likelihood
 for (i in 1:n_ind) { #females
@@ -528,8 +576,8 @@ params <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA',
             'sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA',
             'mu.P', 'mu.1', 'mu.2', 'mu.J', 'mu.A',
             # 'sd.phiP', 'sd.phi1', 'sd.phi2', 'sd.phiJ', 'sd.phiA',
-            'mean.phiP', 'mean.phi1', 'mean.phi2', 'mean.phiJ', 'mean.phiA'
-            )
+            'mean.phiP', 'mean.phi1', 'mean.phi2', 'mean.phiJ', 'mean.phiA',
+            'mean.phiP.5', 'mean.phi1.5', 'mean.phi2.5', 'mean.phiJ.5', 'mean.phiA.5')
 
 # params <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA',
 #             'int.p1', 'int.p2', 'int.pJ', 'int.pA',
@@ -567,7 +615,7 @@ out_median[s,] <- c(summary(out[,c(params[1:9])])$q[,"50%"], max(rhats$psrf[,1],
 colnames(out_median) <- c(names(summary(out[,c(params[1:9])])$q[,"50%"]), 'max_rhat', 'max_rhat_par')
 
 #true values
-out_true[s,] <- c(phi.pars, eval(parse(text = paste0('pars.', scenario)))[1:4])
+out_true[s,] <- c(phi.sim, eval(parse(text = paste0('pars.', scenario)))[1:4])
 colnames(out_true) <- c(phi.pars.names, p.pars.names)
 
 #bias
@@ -582,72 +630,15 @@ bias[s,] <- c((summary(out[,"int.phiP"])$q["50%"]-out_true[s,1])/out_true[s,1],
               (summary(out[,"int.pA"])$q["50%"]-out_true[s,9])/out_true[s,9])
 colnames(bias) <- c(phi.pars.names, p.pars.names)
 
-#detecting departure from baseline phi
-cri_pars <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')
-
-# dif_low_little[s,] <- phi.pars-phi.pars*c(0.15,0.15,0.15,0.10,0.05) >= summary(out)$q[cri_pars,'2.5%'] & 
-#   phi.pars-phi.pars*c(0.15,0.15,0.15,0.10,0.05) <= summary(out)$q[cri_pars,'97.5%']
-# colnames(dif_low_little) <- phi.pars.names
-# 
-# dif_high_little[s,] <- phi.pars+phi.pars*c(0.15,0.15,0.15,0.10,0.05) >= summary(out)$q[cri_pars,'2.5%'] & 
-#   phi.pars+phi.pars*c(0.15,0.15,0.15,0.10,0.05) <= summary(out)$q[cri_pars,'97.5%']
-# colnames(dif_high_little) <- phi.pars.names
-# 
-# dif_low_big[s,] <- phi.pars-phi.pars*c(0.2,0.2,0.2,0.15,0.10) >= summary(out)$q[cri_pars,'2.5%'] & 
-#   phi.pars-phi.pars*c(0.2,0.2,0.2,0.15,0.10) <= summary(out)$q[cri_pars,'97.5%']
-# colnames(dif_low_big) <- phi.pars.names
-# 
-# dif_high_big[s,] <- phi.pars+phi.pars*c(0.2,0.2,0.2,0.15,0.10) >= summary(out)$q[cri_pars,'2.5%'] & 
-#   phi.pars+phi.pars*c(0.2,0.2,0.2,0.15,0.10) <= summary(out)$q[cri_pars,'97.5%']
-# colnames(dif_high_big) <- phi.pars.names
-
-# dif_low_little[s,] <- phi.pars-phi.pars*c(0.15,0.15,0.15,0.10,0.05) <= summary(out)$q[cri_pars,'5%']
-# colnames(dif_low_little) <- phi.pars.names
-# 
-# dif_high_little[s,] <- phi.pars+phi.pars*c(0.15,0.15,0.15,0.10,0.05) >= summary(out)$q[cri_pars,'95%'] 
-# colnames(dif_high_little) <- phi.pars.names
-# 
-# dif_low_big[s,] <- phi.pars-phi.pars*c(0.2,0.2,0.2,0.15,0.10) <= summary(out)$q[cri_pars,'5%'] 
-# colnames(dif_low_big) <- phi.pars.names
-# 
-# dif_high_big[s,] <- phi.pars+phi.pars*c(0.2,0.2,0.2,0.15,0.10) >= summary(out)$q[cri_pars,'95%'] 
-# colnames(dif_high_big) <- phi.pars.names
-
-dif_low_little[s,] <- phi.pars-phi.pars*c(0.15,0.15,0.10,0.05,0.05) <= 
-        c(quantile(out_mat[,'int.phiP'], probs = 0.05), 
-          quantile(out_mat[,'int.phi1'], probs = 0.05),
-          quantile(out_mat[,'int.phi2'], probs = 0.05),
-          quantile(out_mat[,'int.phiJ'], probs = 0.05),
-          quantile(out_mat[,'int.phiA'], probs = 0.05))
-colnames(dif_low_little) <- phi.pars.names
-
-dif_high_little[s,] <- phi.pars+phi.pars*c(0.15,0.15,0.10,0.05,0.05) >= 
-        c(quantile(out_mat[,'int.phiP'], probs = 0.95), 
-          quantile(out_mat[,'int.phi1'], probs = 0.95),
-          quantile(out_mat[,'int.phi2'], probs = 0.95),
-          quantile(out_mat[,'int.phiJ'], probs = 0.95),
-          quantile(out_mat[,'int.phiA'], probs = 0.95))
-colnames(dif_high_little) <- phi.pars.names
-
-dif_low_big[s,] <- phi.pars-phi.pars*c(0.2,0.2,0.15,0.10,0.10) <= 
-  c(quantile(out_mat[,'int.phiP'], probs = 0.05), 
-          quantile(out_mat[,'int.phi1'], probs = 0.05),
-          quantile(out_mat[,'int.phi2'], probs = 0.05),
-          quantile(out_mat[,'int.phiJ'], probs = 0.05),
-          quantile(out_mat[,'int.phiA'], probs = 0.05))
-colnames(dif_low_big) <- phi.pars.names
-
-dif_high_big[s,] <- phi.pars+phi.pars*c(0.2,0.2,0.15,0.10,0.10) >= 
-  c(quantile(out_mat[,'int.phiP'], probs = 0.95), 
-          quantile(out_mat[,'int.phi1'], probs = 0.95),
-          quantile(out_mat[,'int.phi2'], probs = 0.95),
-          quantile(out_mat[,'int.phiJ'], probs = 0.95),
-          quantile(out_mat[,'int.phiA'], probs = 0.95))
-colnames(dif_high_big) <- phi.pars.names
-
+#CV
+cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
+            sd(out_mat[,'mean.phi1'])/summary(out[,"mean.phi1"])$q["50%"],
+            sd(out_mat[,'mean.phi2'])/summary(out[,"mean.phi2"])$q["50%"],
+            sd(out_mat[,'mean.phiJ'])/summary(out[,"mean.phiJ"])$q["50%"],
+            sd(out_mat[,'mean.phiA'])/summary(out[,"mean.phiA"])$q["50%"])
+colnames(cv) <- phi.pars.names
 
 #rmse: sqrt(mean(theta.iter-T)^2)
-
 rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
               sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
               sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
@@ -657,8 +648,28 @@ rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
               sqrt(mean((out_mat[,'int.p2']-out_true[s,7])^2)),
               sqrt(mean((out_mat[,'int.pJ']-out_true[s,8])^2)),
               sqrt(mean((out_mat[,'int.pA']-out_true[s,9])^2)))
-
 colnames(rmse) <- c(phi.pars.names, p.pars.names)
+
+#detecting departure from baseline phi
+cri_pars <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')
+
+#batch 7 & 8
+dec_little5[s,] <- phi.pars >= 
+        c(quantile(out_mat[,'mean.phiP.5'], probs = 0.95), 
+          quantile(out_mat[,'mean.phi1.5'], probs = 0.95),
+          quantile(out_mat[,'mean.phi2.5'], probs = 0.95),
+          quantile(out_mat[,'mean.phiJ.5'], probs = 0.95),
+          quantile(out_mat[,'mean.phiA.5'], probs = 0.95))
+colnames(dec_little5) <- phi.pars.names
+
+dec_little10[s,] <- phi.pars >= 
+        c(quantile(out_mat[,'mean.phiP'], probs = 0.95), 
+          quantile(out_mat[,'mean.phi1'], probs = 0.95),
+          quantile(out_mat[,'mean.phi2'], probs = 0.95),
+          quantile(out_mat[,'mean.phiJ'], probs = 0.95),
+          quantile(out_mat[,'mean.phiA'], probs = 0.95))
+colnames(dec_little10) <- phi.pars.names
+
 
 cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
             sd(out_mat[,'mean.phi1'])/summary(out[,"mean.phi1"])$q["50%"],
@@ -671,24 +682,33 @@ colnames(cv) <- phi.pars.names
 } #simulations
 
 # save output
-batch <- '6'
-saveRDS(bias, file = here::here('results', 'simpleAge', 'sims', 
+saveRDS(bias, file = here::here('results', 'simpleAge', 'sims',
                                 paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
 saveRDS(out_median, file = here::here('results', 'simpleAge', 'sims', 
                                       paste('S.', scenario,  '_median', batch, '.rds', sep = '')))
 saveRDS(cv, file = here::here('results', 'simpleAge', 'sims', 
                                       paste('S.', scenario,  '_cv', batch, '.rds', sep = '')))
-saveRDS(dif_low_little, file = here::here('results', 'simpleAge', 'sims', 
-                                      paste('S.', scenario,  '_low_little', batch, '.rds', sep = '')))
-saveRDS(dif_high_little, file = here::here('results', 'simpleAge', 'sims', 
-                                      paste('S.', scenario,  '_high_little', batch, '.rds', sep = '')))
-saveRDS(dif_low_big, file = here::here('results', 'simpleAge', 'sims', 
-                                      paste('S.', scenario,  '_low_big', batch, '.rds', sep = '')))
-saveRDS(dif_high_big, file = here::here('results', 'simpleAge', 'sims', 
-                                      paste('S.', scenario,  '_high_big', batch, '.rds', sep = '')))
-saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',
-                                paste('S.', scenario, '_rmse', batch, '.rds', sep = '')))
-saveRDS(out, file = here::here('results', 'simpleAge', 'sims',  
+saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',  
+                                      paste('S.', scenario,  '_rmse', batch, '.rds', sep = '')))
+
+#batch 7, 9, 11
+saveRDS(dec_little10, file = here::here('results', 'simpleAge', 'sims',
+                                      paste('S.', scenario,  '_dec_little10_', batch, '.rds', sep = '')))
+saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims',
+                                      paste('S.', scenario,  '_dec_little5_', batch, '.rds', sep = '')))
+
+#batch 8, 10, 12
+#these are the same, just different true values, so used same calculation
+# dec_big5 <- dec_little5
+# dec_big10 <- dec_little10
+# 
+# saveRDS(dec_big10, file = here::here('results', 'simpleAge', 'sims',
+#                                       paste('S.', scenario,  '_dec_big10_', batch, '.rds', sep = '')))
+# saveRDS(dec_big5, file = here::here('results', 'simpleAge', 'sims',
+#                                       paste('S.', scenario,  '_dec_big5_', batch, '.rds', sep = '')))
+
+
+saveRDS(out, file = here::here('results', 'simpleAge', 'sims',
                                paste('S.', scenario, '_chains', batch, '.rds', sep = '')))
 
 
@@ -698,6 +718,7 @@ saveRDS(out, file = here::here('results', 'simpleAge', 'sims',
 
 ```{r convergence summary}
 
+library(stringr)
 sc <- c(1:45)
 
 scenarios <- data.frame(scenario = c(sc),
@@ -717,6 +738,7 @@ for (f in 1:length(med.files)) {
 rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 
                                                      med.files[f]))[,'max_rhat']) %>%
   transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(batch = str_sub(med.files[f], -6,-5)) %>%
   transform(rhat = as.numeric(rhat))
 
 converged <- rbind(converged, rhats)
@@ -725,7 +747,7 @@ converged <- rbind(converged, rhats)
 
 tot_runs <- converged %>%
   filter(!is.na(rhat)) %>%
-  group_by(scenario) %>%
+  group_by(scenario, batch) %>%
   dplyr::summarize(tot = n())
 
 prop_conv <- converged %>%
@@ -785,8 +807,6 @@ mean.rel.bias <- data.frame(rel.bias) %>%
 
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
-
-
 freq_labels <- c('1' = 'Annual', '2' = 'Biennial', '3' = 'Triennial')
 
 #phi
@@ -926,7 +946,16 @@ cv.files3 <- list.files(path = here::here('results', 'simpleAge', 'sims'),
 cv.files4 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
                     pattern = 'cv4', all.files = FALSE, full.names = F)
 
-cv.files <- c(cv.files3, cv.files4)
+cv.files5 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv5', all.files = FALSE, full.names = F)
+
+cv.files6 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv6', all.files = FALSE, full.names = F)
+
+cv.files7 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv7', all.files = FALSE, full.names = F)
+
+cv.files <- c(cv.files4, cv.files5, cv.files6, cv.files7)
 
 cv <- data.frame()
 for (f in 1:length(cv.files)) {
@@ -985,19 +1014,22 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
 
 ```
 
-
 ```{r results threshold}
 
 library(stringr)
 
-cri.scenarios <- c('high_big', 'high_little', 'low_little', 'low_big')
+cri.scenarios <- c('dec_little', 'dec_big', 'inc_little', 'inc_big')
+cri.scenarios <- c('dec_little', 'dec_big')
+append <- c(5,10)
 
 cri.all <- data.frame()
+
+for (a in 1:length(append)) { #files for period length
 
 for (j in 1:length(cri.scenarios)) {
   
 cri.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
-                    pattern = cri.scenarios[j], all.files = FALSE, full.names = F)
+                    pattern = paste0(cri.scenarios[j],append[a]), all.files = FALSE, full.names = F)
 
 cri <- data.frame()
 for (f in 1:length(cri.files)) {
@@ -1005,30 +1037,31 @@ temp.cri <- data.frame(readRDS(file = here::here('results', 'simpleAge', 'sims',
                                                   cri.files[f])))
 #use gsub on cri files rather than use different list to make sure they match
 rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge', 'sims',
-                                                     gsub(cri.scenarios[j], 'median', cri.files[f])))[,'max_rhat'])
+                                                     gsub('median_', 'median', gsub(paste0(cri.scenarios[j], append[a]), 'median', cri.files[f]))))[,'max_rhat'])
 
 temp.cri$rhat <- as.numeric(rhats$rhat)
 temp <- temp.cri %>% 
   reshape2::melt(id.vars = 'rhat') %>%
   transform(scenario = parse_number(gsub('S.', '', cri.files[f]))) %>%
   transform(run = str_sub(cri.files[f], -5,-5)) %>%
+  transform(length = append[a]) %>%
+  # transform(length = ifelse(grepl('little5', cri.files[f]) | grepl('big5', cri.files[f]), 5, 10)) %>%
   transform(threshold = cri.scenarios[j])
 
 cri <- rbind(cri, temp)
 
-} #rds file
+} #appending length of year period
 
 cri.all <- rbind(cri, cri.all)
 
+} #rds file
 } #j
 
 mean.cri <- data.frame(cri.all) %>%
+    merge(scenarios, by = 'scenario', all = F) %>%
   #cri only correct for runs 5 and greater
-  filter(run > 6) %>%
-  group_by(variable, scenario, threshold) %>%
-  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-  merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(threshold, variable, detection, N, survey_freq) %>%
+  # filter(run > 6) %>%
+  group_by(threshold, variable, detection, N, survey_freq, length) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
@@ -1042,40 +1075,19 @@ plot_dat <- mean.cri %>% filter(grepl('phi', variable)) %>%
   transform(value_cat = ifelse(value < 0.5, "<0.5",
                                ifelse(value >=0.5 & value < 0.8, '0.5-0.8', '>0.8'))) %>%
   transform(value_cat = factor(value_cat, levels = c('<0.5', '0.5-0.8', '>0.8'))) %>%
-  transform(threshold = factor(threshold, levels = c('low_little', 'low_big', 'high_little', 'high_big'))) %>%
-  transform(threshold_lab = factor(threshold, 
-                                   levels = c('low_little', 'low_big', 'high_little', 'high_big'),  
-                                   labels = c('Little decrease', 'Big decrease', 'Little increase', 'Big increase')))
+  transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big', 'inc_little', 'inc_big'),
+                               labels = c('Small decrease', 'Big decrease', 'Small increase', 'Big increase')))
 
-#categorical colors
-ggplot(plot_dat %>% filter(threshold %in% c('high_little', 'high_big')), 
-       # aes(x = factor(detection), y = variable, fill = value)) +
-        aes(x = factor(detection), y = variable, fill = value_cat)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold_lab, drop = T, 
-             labeller = labeller(survey_freq = freq_labels),
-             scales = 'free_x') +
-# scale_fill_gradient2(name = "Probability",
-#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.95) +
-  # scale_fill_discrete(name = "Probability of detecting change in survival") +
-  theme_bw() +
-  theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
-  scale_fill_manual(name = "Probability of detecting change in survival",
-                    values = c('darkred', 'orange', 'dodgerblue2'))
 
 #continuous color scale
-#increase in survival
-ggplot(plot_dat %>% filter(threshold %in% c('high_little', 'high_big')), 
+#decrease in survival with 5 and 10 yrs of data
+ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')), 
        aes(x = factor(detection), y = variable, fill = value)) +
         # aes(x = factor(detection), y = variable, fill = value_cat)) +
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold_lab, drop = T, 
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
              scales = 'free_x') +
 scale_fill_gradient2(name = "Probability",
@@ -1085,14 +1097,14 @@ scale_fill_gradient2(name = "Probability",
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
 
-#decrease in survival
-ggplot(plot_dat %>% filter(threshold %in% c('low_little', 'low_big')), 
+#decrease in survival with 10 yrs of data
+ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10), 
        aes(x = factor(detection), y = variable, fill = value)) +
         # aes(x = factor(detection), y = variable, fill = value_cat)) +
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold_lab, drop = T, 
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T, 
              labeller = labeller(survey_freq = freq_labels),
              scales = 'free_x') +
 scale_fill_gradient2(name = "Probability",
@@ -1100,43 +1112,87 @@ scale_fill_gradient2(name = "Probability",
   theme_bw() +
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
+
+#more facets?
+ggplot(plot_dat,
+       aes(x = factor(detection), y = variable, fill = value)) +
+        # aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+scale_fill_gradient2(name = "Probability of detecting change",
+                  mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
+
+#categorical colors
+ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease') & length == 10),
+       # aes(x = factor(detection), y = variable, fill = value)) +
+        aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    values = c('firebrick3', 'orange', 'steelblue2'))
+
+ggplot(plot_dat %>% filter(threshold %in% c('Big decrease')),
+       # aes(x = factor(detection), y = variable, fill = value)) +
+        aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    values = c('firebrick3', 'orange', 'steelblue2'))
+
 #dot plots
-# plot_dat <- cri.all %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(threshold, variable, detection, survey_freq, N) %>%
-#   # dplyr::summarize(value = mean(value), 
-#   #                  lower = quantile(value, probs = 0.025),
-#   #                  upper = quantile(value, probs = 0.975),
-#     dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-#   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-#   transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size')
-# 
-# ggplot(plot_dat %>% filter(threshold %in% c('high_little', 'high_big')),
-#        aes(x = N, y = value, col = detection, group = detection)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Sample size') + ylab('Probability of detecting change') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   facet_grid(variable + threshold ~ survey_freq, label = 'label_parsed', scales = 'free') +
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(8,5,2)], name = 'Detection') 
-# 
-# ggplot(plot_dat %>% filter(threshold %in% c('high_little', 'high_big')),
-#        aes(x = N, y = value, col = threshold, group = threshold)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Sample size') + ylab('Probability of detecting change') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   facet_grid(variable + detection ~ survey_freq, label = 'label_parsed', scales = 'free') +
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Threshold') 
+dotplot_dat <- cri.all %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(threshold, length, variable, detection, survey_freq, N) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Survey frequency', samp_size = 'Sample size') %>%
+  transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big', 'inc_little', 'inc_big'),
+                               labels = c('Small decrease', 'Big decrease', 'Small increase', 'Big increase')))
+
+
+ggplot(plot_dat %>% filter(threshold %in% c('Small decrease', 'Big decrease')),
+       aes(x = N, y = value, col = length, group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Sample size') + ylab('Probability of detecting change') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  facet_grid(variable + detection ~ survey_freq + threshold, label = 'label_parsed', scales = 'free') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(5,2)], name = 'Threshold')
+
+
 
 ```
 
