@@ -910,12 +910,14 @@ ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(threshold == 'dec_lit
     scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
 
 #
-ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(variable == 'phiP'), 
+ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
+         transform(samp_size = 'Sample size & study length') %>%
+         transform(length = factor(length, labels = c('10 yrs', '20 yrs'))), 
        aes(factor(step), value, group = category, col = category)) +
   # geom_point(position = position_dodge(width = 0.1)) +
   geom_point() +
   geom_line() +
-  facet_nested(threshold_name+length~N) +
+  facet_nested(threshold_name~samp_size+N+length) +
   xlab('Stepwise gain in information') + ylab('Probability of detecting change in pup survival') +
   theme_bw() +
   theme(legend.position = 'top',
