@@ -22,22 +22,22 @@ source(here::here('scripts', 'PlotTheme.R'))
 ```
 
 ### Project goal    
-The goal of this project was to examine model performance in the estimation of Steller sea lion survival rates across a range of mark-recapture survey designs.  
+The goal of this project was to examine model performance in the estimation of Steller sea lion survival rates across a range of mark-recapture survey designs. We have thought of this in two contexts: maintaining an accurate/unbiased understanding of a mean survival estimate and being able to detect a trend or change in survival from a "baseline" status quo mean rate.  
 
 ### Simulation analysis  
 
 #### Model framework  
-Mark-recapture data were simulated over 10- and 20-year study horizons based on empirical age-specific survival and detection probabilities estimated for the eastern DPS. These data were fit to a Cormack Jolly Seber mark-recapture model framework to estimate survival of five age classes (pups, age-1, age-2, juveniles (ages 3-4), and adults 5+). Temporal variance was included (based on empirical estimates from the dDPS) for age class-specific survival probabilities, but detection probabilities were assumed constant over the study period. Uninformed priors were used for the estimation of detection probabilities and mean intercepts for survival parameters and penalized complexity priors with a fixed shrinkage rate were used to estimate temporal variance. More details about data generation, model framework, and Bayesian implementation to follow in formal write-up. 
+Mark-recapture data were simulated over 10- and 20-year study horizons based on empirical age-specific survival and detection probabilities estimated for the eastern DPS. These data were fit to a Cormack Jolly Seber mark-recapture model framework to estimate survival of five age classes (pups, age-1, age-2, juveniles (ages 3-4), and adults 5+). Temporal variance was included (based on empirical estimates from the eDPS) for age class-specific survival probabilities, but detection probabilities were assumed constant over the study period. Uninformative priors were used for the estimation of mean intercepts for detection and survival probabilities. Penalized complexity priors with a fixed shrinkage rate were used to estimate temporal variance in survival probabilities. More details about data generation, model framework, and Bayesian implementation will be included in the formal write-up. 
 
 #### Scenarios
 
-The above model was fit using simulated data across 45 scenarios with varying branding cohort sizes (N = 50, 75, 100, 150, 200), branding frequency (annual, biennial, triennial), and detection rates (low, medium, high). Low and high detection rates were set at +/- 20% of the medium (based on empirical estimates) (e.g., for pups, detection rates were 0.48, 0.6, 0.72). Resighting effort was assumed to occur annually regardless of branding schedule based on discussions about the likely future reliance on remote cameras. Therefore, this could be seen as a "best case" scenario with resighting effor each year. 
+The above model was fit using simulated data across 45 scenarios with varying branding cohort sizes (N = 50, 75, 100, 150, 200), branding frequency (annual, biennial, triennial), and detection rates (low, medium, high). Low and high detection rates were set at +/- 20% of the medium level (based on empirical estimates; e.g., simulated detection rate levels were 0.48, 0.6, 0.72 for pups). Resighting effort was assumed to occur annually regardless of branding schedule based on discussions about the likely future reliance on remote cameras. Therefore, this could be seen as a "best case" scenario with resighting effort occurring each year. 
 
 #### Model performance  
 
-Model performance was examined using relative bias, RMSE, coefficient of variation (CV), and the probability of detecting a change in survival over both 10- and 20-year study horizons. The 20-year study horizon can be thought of as being a representation of a situation where you have a population that already includes marked individuals (as is the case for Stellers) rather than starting a new 10-year study. 
+Model performance was examined using relative bias, RMSE, coefficient of variation (CV), and the probability of detecting a change in survival over both 10- and 20-year study horizons. The 20-year study horizon represents a situation where you have a population that already includes previously marked individuals (as is the case for Stellers) rather than starting a new 10-year study. 
 
-To examine the ability to detect a change in survival from a "baseline", I generated annual survival estimates using a logit normal distribution with a mean rate derived by multiplying the empirical mean by an age-based change threshold and a standard deviation from the empirical estimates. I then examined the probability of whether the credible intervals for each survival rate excluded the original "baseline" rate at 5, 10, 15, and 20 years into the study. I examined the ability to detect a "small" decrease (15%, 10%, 5%, 2.5%) and a "big" decrease (20%, 15%, 10%, 5%) in survival for pups, age-1:2, juveniles, and adults, respectively.
+To examine the ability to detect a change in survival from a "baseline", I generated annual survival estimates using a logit normal distribution with a mean rate derived by multiplying the empirical mean by an age-based change threshold using the standard deviation of empirical eDPS estimates. I then examined the probability of whether the credible intervals for each survival rate excluded the original "baseline" rate at 5, 10, 15, and 20 years into the study. I examined the ability to detect a "small" decrease (15%, 10%, 5%, 2.5%) and a "big" decrease (20%, 15%, 10%, 5%) in survival for pups, age-1:2, juveniles, and adults, respectively.
 
 The proportion of simulations where all parameters converged (Rhat < 1.1) was high (~95%), though convergence was a bit lower for some scenarios. 
 
@@ -195,17 +195,17 @@ occ_labels <- c('10' = '10 yrs', '20' = '20 yrs')
 ```
 
 ### Results  
-Results for each of the model performance metrics is below. In general, it is important to note that the estimation of pup and adult survival often show the strongest patterns across the scenarios, but likely for two different reasons. Pup survival is intentionally simulated to have higher variability to reflect reality, and therefore may have poorer precision or increased bias. Adult 5+ survival, on the other hand, has minimal simulated variability but will always be informed by fewer branded cohorts, which can be important in the shorter study time horizons (e.g., adult survival would only be informed by 2 cohorts in a 10-year study). 
+Results for each of the model performance metrics are described below. In general, it is important to note that the estimation of pup and adult survival often show the strongest precision/bias patterns across the scenarios, but likely for two different reasons. Pup survival is intentionally simulated to have higher variability to reflect reality, and therefore may have poorer precision or increased bias. Adult 5+ survival, on the other hand, has minimal simulated variability but will always be informed by fewer branded cohorts, which can be influential in the shorter study time horizon (e.g., adult survival would only be informed by 2 cohorts in a 10-year study with triennial branding). 
 
 #### Big-picture take-aways  
-- Results are consistent across performance metrics, though the strength of the apparent patterns varies across metrics.  
-- Model performance degrades most notably across branding frequency, cohort sampling sizes, and study horizons, with smaller differences across detection levels.  
-- Precision goals stated in MMPA permits can be reliably achieved with either a 20-year study horizon or annual branding. 
+- Results are consistent across the different performance metrics, though the strength of the apparent patterns varies across metrics.  
+- Model performance degrades most notably across branding frequency, cohort sampling size, and study horizon, with smaller differences across detection levels.  
+- In terms of getting accurate and unbiased estiamtes of a mean survival probability, precision goals stated in MMPA permits can be reliably achieved with either a 20-year study horizon or annual branding. 
 - The probability of detecting a change in survival varies considerably across simulation scenarios and highlights the power of increasing branding frequency and cohort sample sizes if detecting a change in survival is a high research priority (as opposed to just having precise mean survival estimates). 
 
 
 #### Coefficient of variation   
-The coefficient of variation (CV) is a relative measure of precision (i.e., how dispersed estimates are around the mean).  - that is used in MMPA permit applications for the sea lion branding program. The CV values shown below follow an expected pattern across survey features, with the most precise estimates in larger sample sizes, the longer study horizon, and more frequent branding. 
+The coefficient of variation (CV) is a relative measure of precision (i.e., how dispersed estimates are around the mean) that is used in MMPA permit applications for the sea lion branding program. The CV values shown below follow an expected pattern across survey features, with the most precise estimates in larger sample sizes, the longer study horizon, and more frequent branding. 
 
 In examining the probability of the CV being below 0.125 (threshold used in MMPA permit applications for sea lion branding) across all simulations, we can see the importance of a longer study time horizon. The MMPA permit application benchmark can be achieved reliably for juveniles and adults in all scenarios and achieved reliably for younger age classes in scenarios with: (1) annual branding, (2) biennial branding over a longer study, or (3) triennial branding over a longer study with larger sample sizes. In short, sample size can compensate for other "losses" of information to a degree that increasing detection probability (within the range studied here) cannot. 
 
@@ -390,8 +390,6 @@ mean.cv.thresh.20 <- data.frame(cv %>% transform(length = 10)) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size')
 
-
-#phi
 plot_dat <- mean.cv.thresh.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
                               labels = phi_pars))
@@ -415,10 +413,144 @@ scale_fill_gradient2(name = "Probability of \n cv < 0.125",
 
 ```
 
+```{r results cv delta}
+
+#mean.cv.thresh.20 contains the mean probability (across simulations) where the cv < 0.125.
+
+#values for the scenario with the "least" amount of contributing information
+#i.e., triennial sampling, N = 50, 10 years, low detection (scenario 31)
+
+#just look at 20 years for now
+cv_least_info_50 <- mean.cv.thresh.20 %>%
+  filter(detection == 'Low' & length == 20 & survey_freq == 3 & N == 50) %>%
+  dplyr::select(c(variable, value_cat)) %>%
+  dplyr::rename(min_val = value_cat)
+
+cv_delta_50 <- mean.cv.thresh.20 %>% filter(length == 20) %>%
+  merge(cv_least_info_50, by = c('variable')) %>%
+  transform(delta = value_cat-min_val) %>%
+  filter(N %in% c(50, 100, 200)) %>% 
+  transform(det_cat = as.numeric(factor(detection)),
+            N_cat = as.numeric(factor(N))) %>%
+  filter(variable == 'phiP') %>%
+  # filter(variable %in% c('phiP', 'phiA')) %>%
+  transform(survey_cat = 4-as.numeric(factor(survey_freq))) %>%
+  transform(step = N_cat + survey_cat + det_cat) %>%
+  transform(step = ifelse(detection == 'Low' & length == 20 & survey_freq == 3 & N == 50, 0, step))
+
+#this would be more meaningful on the straight probabilities rather than the deltas
+ggplot(cv_delta_50, aes(detection, delta, 
+                     color = factor(survey_freq), 
+                     group = variable,
+                     shape = variable)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(survey_freq~N) 
+
+#same as plots above just showing delta
+# ggplot(plot_dat_test, aes(x = factor(detection), y = variable, fill = delta)) +
+#   geom_tile(color = 'grey50') +
+#   xlab('Detection') +
+#   ylab('Parameter') +
+#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
+#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+#              scales = 'free_x') +
+# scale_fill_gradient2(name = "Abs change from worst case",
+#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
+#   theme_bw() +
+#   theme(legend.position = 'right',
+#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+#         legend.text = element_text(size = 8, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#different idea
+cv_least_info <- mean.cv.thresh.20 %>%
+  filter(detection == 'Low' & length == 20 & survey_freq == 3 & N %in% c(50, 100, 200)) %>%
+  dplyr::select(c(variable, N, value_cat)) %>%
+  dplyr::rename(min_val = value_cat)
+
+cv_delta <- mean.cv.thresh.20 %>% filter(length == 20) %>%
+    filter(N %in% c(50, 100, 200)) %>% 
+  merge(cv_least_info, by = c('variable', 'N')) %>%
+  transform(delta = value_cat-min_val) %>%
+  transform(det_cat = as.numeric(factor(detection)),
+            N_cat = as.numeric(factor(N))) %>%
+  # filter(variable == 'phiP') %>%
+  filter(variable %in% c('phiP', 'phi1')) %>%
+  transform(survey_cat = 4-as.numeric(factor(survey_freq))) %>%
+  transform(step = N_cat + survey_cat + det_cat) %>%
+  transform(step = ifelse(detection == 'Low' & length == 20 & survey_freq == 3, 0, step))
+
+cv_delta_steps <- cv_delta %>% 
+  # filter(N == 50 & variable == 'phiP') %>%
+    filter(variable %in% c('phiP', 'phi1')) %>%
+  #because of filters, N is always 1 - update if more complex
+  transform(category = ifelse(step == 0, 'Baseline', 
+                  ifelse(det_cat > 1 & survey_cat == 1, 'Detection only',
+                  ifelse(survey_cat > 1 & det_cat == 1, 'Frequency only', 'Detection & frequency')))) %>%
+  transform(step = ifelse(step == 0, 0,
+                          ifelse(det_cat == 1 & survey_cat == 1, NA,
+                            ifelse(category == 'Detection only' & N_cat == 1 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 1 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 1 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 1 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 1 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 1, 2, 
+                            ifelse(category == 'Detection only' & N_cat == 2 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 2 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 2 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 2 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 2 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 2, 2, 
+                            ifelse(category == 'Detection only' & N_cat == 3 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 3 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 3 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 3 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 3 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 3, 2, 
+                            ifelse(det_cat == 1 & survey_cat == 1, NA, NA)))))))))) %>%
+  transform(category = factor(category, levels = c('Baseline', 'Detection only', 
+                                                   'Frequency only', 
+                                                   'Detection & frequency')))
+
+#shows change in probability relative to the "worst case" survey conditions
+ggplot(cv_delta_steps %>% filter(!is.na(step)), 
+       aes(factor(step), delta, group = category, col = category)) +
+  # geom_point(position = position_dodge(width = 0.1)) +
+  geom_point() +
+  geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  facet_grid(variable~N, scales = 'free') +
+  xlab('Stepwise gain in information') + ylab('Change in probability') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
+#just shows straight probability of being under the cv threshold.... 
+#this is better because it shows the different relative starting points of the sample sizes
+ggplot(cv_delta_steps %>% filter(!is.na(step)), 
+       aes(factor(step), value_cat, group = category, col = category)) +
+  # geom_point(position = position_dodge(width = 0.1)) +
+  geom_point() +
+  geom_line() +
+  facet_nested(variable~samp_size+N, scales = 'free') +
+  xlab('Stepwise gain in information') + ylab('Probability of meeting CV threshold') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
+```
+
+
 #### Detecting changes in survival  
 As noted above, I examined the ability to detect a "small" decrease (15%, 10%, 5%, 2.5%) and a "big" decrease (20%, 15%, 10%, 5%) in survival for pups, age-1:2, juveniles, and adults, respectively. 
-
-
 
 ```{r results threshold}
 
@@ -502,7 +634,6 @@ plot_dat <- mean.cri %>% filter(grepl('phi', variable) & length %in% c(10,20)) %
 
 
 ```
-
 
 ```{r results threshold prepop, fig.width = 10, fig.height = 7}
 
@@ -640,7 +771,6 @@ cri_highD_cat <- ggplot(plot_dat %>% filter(detection == 'Med'),
 
 ```
 
-
 ```{r more facets, fig.width = 9, fig.height = 12}
 
 plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
@@ -687,7 +817,115 @@ cri_all_cat <- ggplot(plot_dat %>% filter(length %in% c(10,20)),
                     # values = c('firebrick3', 'orange', 'steelblue2'))
                     values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
+cri_20_cat <- ggplot(plot_dat %>% filter(length %in% c(20)),
+       aes(x = factor(detection), y = variable, fill = value_cat)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N + length ~ survey_frequency + survey_freq + threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
+  scale_fill_manual(name = "Probability of detecting change in survival",
+                    # values = c('firebrick3', 'orange', 'steelblue2'))
+                    values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
+
 ```
+
+```{r results threshold delta}
+
+#mean.cv.thresh.20 contains the mean probability (across simulations) where the cv < 0.125.
+
+#values for the scenario with the "least" amount of contributing information
+#i.e., triennial sampling, N = 50, 10 years, low detection (scenario 31)
+
+cri_least_info <- mean.cri.20 %>% transform(samp_size = 'Sample size') %>%
+  filter(detection == 'Low' & length %in% c(10,20) &
+           survey_freq == 3 & N %in% c(50, 100, 200)) %>%
+  dplyr::select(c(variable, N, value, length)) %>%
+  dplyr::rename(min_val = value)
+
+cri_delta <- mean.cri.20 %>% filter(length %in% c(10,20)) %>%
+    filter(N %in% c(50, 100, 200)) %>% 
+  merge(cri_least_info, by = c('variable', 'N', 'length')) %>%
+  transform(delta = value-min_val) %>%
+  transform(det_cat = as.numeric(factor(detection)),
+            N_cat = as.numeric(factor(N))) %>%
+  # filter(variable == 'phiP') %>%
+  filter(variable %in% c('phiP', 'phi1')) %>%
+  transform(survey_cat = 4-as.numeric(factor(survey_freq))) %>%
+  transform(step = N_cat + survey_cat + det_cat) %>%
+  transform(step = ifelse(detection == 'Low' & survey_freq == 3, 0, step))
+
+cri_delta_steps <- cri_delta %>% 
+  # filter(N == 50 & variable == 'phiP') %>%
+    filter(variable %in% c('phiP', 'phi1')) %>%
+  transform(category = ifelse(step == 0, 'Baseline', 
+                  ifelse(det_cat > 1 & survey_cat == 1, 'Detection only',
+                  ifelse(survey_cat > 1 & det_cat == 1, 'Frequency only', 'Detection & frequency')))) %>%
+  transform(step = ifelse(step == 0, 0,
+                          ifelse(det_cat == 1 & survey_cat == 1, NA,
+                            ifelse(category == 'Detection only' & N_cat == 1 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 1 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 1 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 1 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 1 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 1, 2, 
+                            ifelse(category == 'Detection only' & N_cat == 2 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 2 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 2 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 2 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 2 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 2, 2, 
+                            ifelse(category == 'Detection only' & N_cat == 3 & det_cat == 2 | 
+                            category == 'Frequency only' & N_cat == 3 & survey_cat == 2 |
+                              survey_cat == 2 & N_cat == 3 & det_cat == 2, 1,
+                          ifelse(category == 'Detection only' & N_cat == 3 & det_cat == 3 | 
+                            category == 'Frequency only' & N_cat == 3 & survey_cat == 3 |
+                              survey_cat == det_cat & N_cat == 3, 2, 
+                            ifelse(det_cat == 1 & survey_cat == 1, NA, NA)))))))))) %>%
+  transform(category = factor(category, levels = c('Baseline', 'Detection only', 
+                                                   'Frequency only', 
+                                                   'Detection & frequency'))) %>%
+  transform(threshold_name = factor(threshold, levels = c('dec_little', 'dec_big'), 
+                                    labels = c('Small decrease', 'Large decrease')))
+
+#just shows straight probability of detecting change.... 
+#this is better because it shows the different relative starting points of the sample sizes
+ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(threshold == 'dec_little'), 
+       aes(factor(step), value, group = category, col = category)) +
+  # geom_point(position = position_dodge(width = 0.1)) +
+  geom_point() +
+  geom_line() +
+  facet_nested(variable+length~N, scales = 'free') +
+  xlab('Stepwise gain in information') + ylab('Probability of detecting small change') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
+#
+ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(variable == 'phiP'), 
+       aes(factor(step), value, group = category, col = category)) +
+  # geom_point(position = position_dodge(width = 0.1)) +
+  geom_point() +
+  geom_line() +
+  facet_nested(threshold_name+length~N) +
+  xlab('Stepwise gain in information') + ylab('Probability of detecting change in pup survival') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
+```
+
 
 ##### Performance across everything  
 This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
@@ -698,8 +936,8 @@ cri_all_cat
 
 ```
 
-##### Fewer facets: detecting smaller or larger changes 
-In the following figures, we can see a clearer picture of the effects of study horizon, sample size, and branding cohort. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
+##### Simpler view: detecting smaller or larger changes 
+In the following figures, the above information is filtered for simpler views. Here we can see a clearer picture of the effects of study horizon, sample size, and branding frequency. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
 
 ```{r cri fewer facets I, fig.width = 7, fig.height = 6}
 
@@ -709,12 +947,21 @@ cri_small_cat
 
 ```
 
-##### Fewer facets: detecting changes at medium detection  
+##### Simpler view: detecting changes at medium detection  
 This figure provides a reoriented perspective by examining probabilities of detecting small and large changes across all survey features and medium detection levels.  
 
-```{r crew fewer facets II, fig.width = 9, fig.height = 4}
+```{r cri fewer facets II, fig.width = 9, fig.height = 4}
 
 cri_highD_cat
+
+```
+
+##### Simpler view: detecting changes at 20 years  
+This figure is another simpler view that shows all of the facets but just a 20-year study time horizon.  
+
+```{r cri fewer facets III, , fig.width = 7, fig.height = 6}
+
+cri_20_cat
 
 ```
 
