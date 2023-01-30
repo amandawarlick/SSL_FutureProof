@@ -175,7 +175,6 @@ getP <- nimbleFunction(
 
 ```
 
-
 ```{r scenarios and parameters}
 
 scenario <- 6 #1-45
