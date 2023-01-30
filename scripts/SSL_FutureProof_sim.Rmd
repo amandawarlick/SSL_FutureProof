@@ -180,14 +180,14 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 7 #1-45
-nsim <- 10
+scenario <- 1 #1-45
+nsim <- 50
 
 thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
 thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
 
 #batch 
-batch <- 26   # 18 #10 and 14 and 18
+batch <- 12   # 18 #10 and 14 and 18
 thresh <- thresh_small
 v_thresh <- 'small_decrease'
 
@@ -673,19 +673,7 @@ saveRDS(dec_little5, file = here::here('results', 'simpleAge', 'sims', 'prePop',
 # saveRDS(dec_big5, file = here::here('results', 'simpleAge', 'sims', 'prePop',
 #                                       paste('S.', scenario,  '_dec_big5_', batch, '.rds', sep = '')))
 
-# #batch 12
-# saveRDS(inc_little10, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_little10_', batch, '.rds', sep = '')))
-# saveRDS(inc_little5, file = here::here('results', 'simpleAge', 'sims', 
-#                                       paste('S.', scenario,  '_inc_little5_', batch, '.rds', sep = '')))
-# 
-# #batch 13
-# # inc_big5 <- inc_little5
-# # inc_big10 <- inc_little10
-# saveRDS(inc_big10, file = here::here('results', 'simpleAge', 'sims', 'prePop',
-#                                       paste('S.', scenario,  '_inc_big10_', batch, '.rds', sep = '')))
-# saveRDS(inc_big5, file = here::here('results', 'simpleAge', 'sims', 'prePop',
-#                                       paste('S.', scenario,  '_inc_big5_', batch, '.rds', sep = '')))
+
 
 saveRDS(out, file = here::here('results', 'simpleAge', 'sims',  'prePop',
                                paste('S.', scenario, '_chains', batch, '.rds', sep = '')))

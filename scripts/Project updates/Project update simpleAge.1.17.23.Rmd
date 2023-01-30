@@ -78,13 +78,14 @@ converged <- rbind(converged, rhats)
 
 tot_runs <- converged %>%
   filter(!is.na(rhat)) %>%
-  transform(type = ifelse(batch %in% c('n7', 'n9'), 'Small change', 'Big change')) %>%
+  # filter(batch %in% c('n9', 10,11,12,13)) %>%
+  transform(type = ifelse(batch %in% c('n7', 'n9', 11, 13), 'Small change', 'Big change')) %>%
   group_by(scenario, type) %>%
   dplyr::summarize(tot = n())
 
 prop_conv <- converged %>%
   filter(rhat<1.1) %>%
-  transform(type = ifelse(batch %in% c('n7', 'n9'), 'Small change', 'Big change')) %>%
+  transform(type = ifelse(batch %in% c('n7', 'n9', 11, 13), 'Small change', 'Big change')) %>%
   group_by(scenario, type) %>%
   dplyr::summarize(conv = n(), .groups = 'keep') %>%
   merge(tot_runs, by = c('scenario', 'type'), all = T) %>%
@@ -439,30 +440,13 @@ cv_delta_50 <- mean.cv.thresh.20 %>% filter(length == 20) %>%
   transform(step = ifelse(detection == 'Low' & length == 20 & survey_freq == 3 & N == 50, 0, step))
 
 #this would be more meaningful on the straight probabilities rather than the deltas
-ggplot(cv_delta_50, aes(detection, delta, 
-                     color = factor(survey_freq), 
-                     group = variable,
-                     shape = variable)) +
-  geom_point() +
-  geom_line() +
-  facet_grid(survey_freq~N) 
-
-#same as plots above just showing delta
-# ggplot(plot_dat_test, aes(x = factor(detection), y = variable, fill = delta)) +
-#   geom_tile(color = 'grey50') +
-#   xlab('Detection') +
-#   ylab('Parameter') +
-#   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
-#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-#              scales = 'free_x') +
-# scale_fill_gradient2(name = "Abs change from worst case",
-#                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
-#   theme_bw() +
-#   theme(legend.position = 'right',
-#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-#         legend.text = element_text(size = 8, vjust = 0.5),
-#         legend.title = element_text(vjust = 0.8, size = 10)) +
-#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+# ggplot(cv_delta_50, aes(detection, delta, 
+#                      color = factor(survey_freq), 
+#                      group = variable,
+#                      shape = variable)) +
+#   geom_point() +
+#   geom_line() +
+#   facet_grid(survey_freq~N) 
 
 #different idea
 cv_least_info <- mean.cv.thresh.20 %>%
@@ -477,14 +461,14 @@ cv_delta <- mean.cv.thresh.20 %>% filter(length == 20) %>%
   transform(det_cat = as.numeric(factor(detection)),
             N_cat = as.numeric(factor(N))) %>%
   # filter(variable == 'phiP') %>%
-  filter(variable %in% c('phiP', 'phi1')) %>%
+  # filter(variable %in% c('phiP', 'phi1')) %>%
   transform(survey_cat = 4-as.numeric(factor(survey_freq))) %>%
   transform(step = N_cat + survey_cat + det_cat) %>%
   transform(step = ifelse(detection == 'Low' & length == 20 & survey_freq == 3, 0, step))
 
 cv_delta_steps <- cv_delta %>% 
   # filter(N == 50 & variable == 'phiP') %>%
-    filter(variable %in% c('phiP', 'phi1')) %>%
+    # filter(variable %in% c('phiP', 'phi1')) %>%
   #because of filters, N is always 1 - update if more complex
   transform(category = ifelse(step == 0, 'Baseline', 
                   ifelse(det_cat > 1 & survey_cat == 1, 'Detection only',
@@ -515,29 +499,45 @@ cv_delta_steps <- cv_delta %>%
                                                    'Detection & frequency')))
 
 #shows change in probability relative to the "worst case" survey conditions
-ggplot(cv_delta_steps %>% filter(!is.na(step)), 
-       aes(factor(step), delta, group = category, col = category)) +
-  # geom_point(position = position_dodge(width = 0.1)) +
-  geom_point() +
-  geom_line() +
-  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-  facet_grid(variable~N, scales = 'free') +
-  xlab('Stepwise gain in information') + ylab('Change in probability') +
-  theme_bw() +
-  theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
-    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+# ggplot(cv_delta_steps %>% filter(!is.na(step)), 
+#        aes(factor(step), delta, group = category, col = category)) +
+#   # geom_point(position = position_dodge(width = 0.1)) +
+#   geom_point() +
+#   geom_line() +
+#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+#   facet_grid(variable~N, scales = 'free') +
+#   xlab('Stepwise gain in information') + ylab('Change in probability') +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#              strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+#         legend.text = element_text(size = 8, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#     scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
+#simplify to "fill" the baseline scenario
+scenario_fill <- data.frame(step = c(rep(0, 9)),
+                            # value_cat = rep(1,9),
+                            N = c(rep(c(50,100,200), each = 3)),
+                            category = c(rep(c('Detection only', 'Frequency only', 'Detection & frequency'), times = 3))) %>%
+  merge(cv_delta_steps %>% dplyr::select(min_val, category, variable, N), 
+        by = c('category', 'N'), all.x = T) %>% 
+  distinct() %>%
+  dplyr::rename(value_cat = min_val)
+                            
+plot_dat <- cv_delta_steps %>%
+  dplyr::select(category, N, step, value_cat, variable) %>%
+  bind_rows(scenario_fill) %>%
+  transform(samp_size = 'Sample size') %>%
+  filter(category != 'Baseline')
 
 #just shows straight probability of being under the cv threshold.... 
 #this is better because it shows the different relative starting points of the sample sizes
-ggplot(cv_delta_steps %>% filter(!is.na(step)), 
+ggplot(plot_dat %>% filter(!is.na(step)), 
        aes(factor(step), value_cat, group = category, col = category)) +
   # geom_point(position = position_dodge(width = 0.1)) +
   geom_point() +
   geom_line() +
-  facet_nested(variable~samp_size+N, scales = 'free') +
+  facet_nested(variable~samp_size+N) +
   xlab('Stepwise gain in information') + ylab('Probability of meeting CV threshold') +
   theme_bw() +
   theme(legend.position = 'top',
@@ -843,14 +843,15 @@ cri_20_cat <- ggplot(plot_dat %>% filter(length %in% c(20)),
 #i.e., triennial sampling, N = 50, 10 years, low detection (scenario 31)
 
 cri_least_info <- mean.cri.20 %>% transform(samp_size = 'Sample size') %>%
+  dplyr::select(!survey_frequency) %>%
   filter(detection == 'Low' & length %in% c(10,20) &
            survey_freq == 3 & N %in% c(50, 100, 200)) %>%
-  dplyr::select(c(variable, N, value, length)) %>%
+  dplyr::select(c(variable, N, value, length, threshold)) %>%
   dplyr::rename(min_val = value)
 
 cri_delta <- mean.cri.20 %>% filter(length %in% c(10,20)) %>%
     filter(N %in% c(50, 100, 200)) %>% 
-  merge(cri_least_info, by = c('variable', 'N', 'length')) %>%
+  merge(cri_least_info, by = c('variable', 'N', 'length', 'threshold')) %>%
   transform(delta = value-min_val) %>%
   transform(det_cat = as.numeric(factor(detection)),
             N_cat = as.numeric(factor(N))) %>%
@@ -886,16 +887,31 @@ cri_delta_steps <- cri_delta %>%
                           ifelse(category == 'Detection only' & N_cat == 3 & det_cat == 3 | 
                             category == 'Frequency only' & N_cat == 3 & survey_cat == 3 |
                               survey_cat == det_cat & N_cat == 3, 2, 
-                            ifelse(det_cat == 1 & survey_cat == 1, NA, NA)))))))))) %>%
+                            ifelse(det_cat == 1 & survey_cat == 1, NA, NA)))))))))) 
+
+scenario_fill_cri <- expand.grid(step = 0,
+              length = c(10,20),
+              threshold = c('dec_little', 'dec_big'),
+              N = c(50, 100, 200),
+              category = c('Detection only', 'Frequency only', 
+                                         'Detection & frequency')) %>%
+  merge(cri_delta_steps %>% dplyr::select(length, threshold, min_val, category, variable, N), 
+        by = c('category', 'N', 'length', 'threshold')) %>% 
+  distinct() %>%
+  dplyr::rename(value = min_val)
+                            
+plot_dat <- cri_delta_steps %>%
+  dplyr::select(category, N, length, threshold, step, value, variable) %>%
+  bind_rows(scenario_fill_cri) %>%
+  filter(category != 'Baseline') %>%
+  transform(threshold_name = factor(threshold, levels = c('dec_little', 'dec_big'), 
+                                    labels = c('Small decrease', 'Large decrease'))) %>%
   transform(category = factor(category, levels = c('Baseline', 'Detection only', 
                                                    'Frequency only', 
-                                                   'Detection & frequency'))) %>%
-  transform(threshold_name = factor(threshold, levels = c('dec_little', 'dec_big'), 
-                                    labels = c('Small decrease', 'Large decrease')))
+                                                   'Detection & frequency'))) 
 
 #just shows straight probability of detecting change.... 
-#this is better because it shows the different relative starting points of the sample sizes
-ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(threshold == 'dec_little'), 
+ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(threshold == 'dec_little'), 
        aes(factor(step), value, group = category, col = category)) +
   # geom_point(position = position_dodge(width = 0.1)) +
   geom_point() +
@@ -909,8 +925,22 @@ ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(threshold == 'dec_lit
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
 
+ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(threshold == 'dec_big'), 
+       aes(factor(step), value, group = category, col = category)) +
+  # geom_point(position = position_dodge(width = 0.1)) +
+  geom_point() +
+  geom_line() +
+  facet_nested(variable+length~N, scales = 'free') +
+  xlab('Stepwise gain in information') + ylab('Probability of detecting large change') +
+  theme_bw() +
+  theme(legend.position = 'top',
+             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
+
 #
-ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
+ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
          transform(samp_size = 'Sample size & study length') %>%
          transform(length = factor(length, labels = c('10 yrs', '20 yrs'))), 
        aes(factor(step), value, group = category, col = category)) +
@@ -929,7 +959,7 @@ ggplot(cri_delta_steps %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %
 ```
 
 
-##### Performance across everything  
+##### Detecting changes across all variables  
 This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
 
 ```{r cri all facets, fig.width = 9, fig.height = 10}
