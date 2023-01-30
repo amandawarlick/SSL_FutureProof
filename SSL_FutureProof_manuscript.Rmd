@@ -25,10 +25,11 @@ source(here::here('scripts', 'PlotTheme.R'))
 
 Important concepts/paragraphs
 
-- Accurate/unbiased estimates are important
+- Accurate/unbiased estimates are important for wildlife conservation and management
 -- Status assessments (abundance), effects of changing environmental conditions (demography)
--- These good estimates can be expensive, invasive, disruptive
--- Important to "optimize" for managers, wildlife, costs, ultimate conservation outcomes
+-- Have to achieve a certain degree of precision to be effective in meeting conservation and management goals (Reynolds et al)
+-- These estimates can be expensive, invasive, disruptive, logistically challenging
+-- Important to "optimize" trade-offs for managers, wildlife, and costs 
 
 - Optimizing can be logistically challenging 
 -- Costs can be difficult to quantify
@@ -137,8 +138,7 @@ Wilton et al. 2014
 - Mainly tested bias under proposed study designs, but found that situations with low density and non-uniform distribution required more thoughtful trade-offs about snare spacing, coverage, and sample sizes to achieve precision
 
 Johnston et al. 2015
-- Abundance models improve spatial and temporal prioritization of conservation resources
-
+- Abundance models (compared to occupancy) improve spatial and temporal prioritization of conservation resources; not a simulation study, probably don't need to cite
 
 Peel et al. 2015
 - Same study/issue as above, better citation - more focused on study design
@@ -159,7 +159,12 @@ Lyons et al. 2015
 - Accuracy (as measured by RMSE) improved with more scans per day and with larger scan sample sizes; same with CV
 
 Evans et al. 2016. 
-- Species recovery in the United States: increasing the effectiveness of the Endangered Species Act
+- Species recovery in the United States: increasing the effectiveness of the ESA
+- Insufficient funding for species recovery, and not proportional across taxa (mostly for fish; salmon/sturgeon)
+- Funding shortages bring trade-offs front and center; allocations more often driven by political/social factors
+- Mitigations necessary for climate change will likely further constrain recovery resources
+- Limited resources often preclude adaptive management feedback applications
+- Hard to know how often/if the agencies follow their own prioritization scheme for allocating recovery funds
 
 Galvez et al. 2016
 - Incorporating costs into camera trap surveys
@@ -177,6 +182,8 @@ Lanier et al. 2016
 
 Little et al. 2016
 - trade-offs for cost-constrained fisheries management
+- lots of lists of all the different "risks" that incur more costs (e.g., the need to implement a control rule for additional cost)
+- risk (of overfishing)-catch-cost frontier.... easier to derive benefits for fisheries compared to wildlife monitoring
 
 Sackett & Catalano 2017
 - Red snapper (Lutjanus campechanus) in GoM; recreational fishing mortality; sample size (number tagged), fishing effort, fish density, tag loss - lots of facets
@@ -201,16 +208,11 @@ Kristensen & Kovach 2018
 - Studies are less common for smaller individuals; conclude optimal study designs will vary among organisms (habitat use and spatial extent), so pilot planning is important
 - *Campbell et al. 2002* abundance is the most common quantitative metric in recovery plans and delisting criteria, key parameter underlying extinction risk
 - *Need good abundance estimates to measure response to management actions (Nichols & Williams 06; Johnston et al. 2015)*
-- *Evans et al. 2016* limited resources often preclude adaptive management feedback applications
 - CV and relative bias; number of survey occasions, pellet collection spacing, true density, transect spacing all important predictors; number of survey occasions less impactful?
 - "When detectability was low (g0 = 0.1), both additional detectors and more frequent sampling were required to achieve the desired levels of precision than with higher detectability (g0 = 0.2)"
 - *Pollock et al 1990* recommends CV < 0.2? 
 - Also found that true density had large effect on performance, had to compensate for low density by upping observation metrics
 - Nice examples of when management goals affect needed precision: tracking fate of reintroduction (maybe need to ensure less bias and higher precision) compared to responses to habitat management (number alive with low precision acceptable?)
-
-Guerra et al. 2019
-- Improving conservation "across scales"
-
 
 Durden et al. 2021
 - Bottlenose dolphine (Tursiops truncatus truncatus) in Indian River Lagoon
@@ -221,6 +223,8 @@ Freeman et al. 2021
 
 White et al. 2022
 - Decision support framework for assessing costs and benefits of conservation actions
+- Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied
+- Mainly a how-to
 
 
 ### Literature cited
