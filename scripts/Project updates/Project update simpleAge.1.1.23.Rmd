@@ -347,22 +347,39 @@ dotplot_dat <- rel.bias.20 %>% transform(length = 20) %>%
   filter(!is.na(variable))
 
 
-# ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
-#        aes(x = detection, y = value, col = factor(length), group = length)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Detection') + ylab('Relative bias') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
-#   
-#   facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-#              scales = 'free_x') +
-#   
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+       aes(x = detection, y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Detection') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20 & variable %in% c('phiP')),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(samp_size + N ~ detection, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
 
 # ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phiA')),
 #        aes(x = detection, y = value, col = factor(length), group = length)) +
