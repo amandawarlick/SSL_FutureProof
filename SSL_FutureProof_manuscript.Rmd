@@ -52,7 +52,36 @@ Important concepts/paragraphs
 
 ### Methods  
 
+-- Study system: briefly explain layout of different rookeries/regions/trends?
+-- Model description and equations  
+-- Simulation scenarios
+-- Performance metrics tracked  
 
+### Results  
+
+
+### Discussion  
+
+- Aims/results/methods review
+-- Review most compelling results
+-- Summarize benefits/applications/importance
+
+- Review other studies that have done this?
+-- Example 1
+-- Example 2
+
+- What it means for SSL  
+-- Study design must also consider "risk tolerance" and management goals
+-- What are those for SSL? They vary across space (and time as management needs change?)
+-- Goals have to be re-evaluated in iterative process
+
+- Recommendations for mark-recapture designs generally
+-- Example 1
+
+
+- Conclusion
+-- Benefits and challenges of study
+-- Important for future of dwindling funding
 
 ### Literature review
 
