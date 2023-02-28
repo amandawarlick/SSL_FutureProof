@@ -98,6 +98,9 @@ scenarios_tab <- scenarios %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial')))
 
+missing <- scenarios_tab %>%
+  filter(tot<100)
+
 # kable(scenarios_tab)
 
 # ggplot(scenarios_tab %>% filter(!is.na(prop_conv)), aes(x = factor(detection), y = factor(N), fill = prop_conv)) +
@@ -170,6 +173,12 @@ scenarios_tab20 <- scenarios %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial')))
 
+missing20 <- converged20 %>%
+  filter(!is.na(rhat)) %>%
+  transform(type = ifelse(batch %in% c(seq(10,31, by = 2)), 'Small change', 'Big change')) %>%
+  group_by(scenario, batch, type) %>%
+  dplyr::summarize(tot = n(), .groups = 'keep')
+
 # kable(scenarios_tab20)
 
 # ggplot(scenarios_tab20 %>% filter(!is.na(prop_conv)), aes(x = factor(detection), y = factor(N), fill = prop_conv)) +
@@ -226,7 +235,13 @@ cv.files9 <- list.files(path = here::here('results', 'simpleAge', 'sims'),
 cv.files10 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
                     pattern = 'cv10', all.files = FALSE, full.names = F)
 
-cv.files <- c(cv.files7, cv.files8, cv.files9, cv.files10)
+cv.files11 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv11', all.files = FALSE, full.names = F)
+
+cv.files12 <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'cv12', all.files = FALSE, full.names = F)
+
+cv.files <- c(cv.files7, cv.files8, cv.files9, cv.files10, cv.files11, cv.files12)
 
 
 cv <- data.frame()
@@ -411,8 +426,142 @@ scale_fill_gradient2(name = "Probability of \n cv < 0.125",
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
+#dotplots
+#continuous raw
+dotplot_dat <- cv.20 %>% transform(length = 20) %>% 
+  bind_rows(cv %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+
+# ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+#        aes(x = detection, y = value, col = factor(length), group = length)) +
+#   geom_point() + geom_line() +
+#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+#   xlab('Detection') + ylab('CV') +
+#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+#   # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+# 
+#   facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T,
+#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+#              scales = 'free_x') +
+# 
+#   theme_bw() +
+#   plot_theme(legend.position = 'top',
+#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+#no study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
+#study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phi1')),
+       aes(x = factor(survey_freq), y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(variable + detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
+#categorical threshold 
+dotplot_dat <- cv.20 %>% transform(length = 20) %>% 
+  bind_rows(cv %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  transform(value_cat = value<0.125) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+       aes(x = detection, y = value_cat, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Detection') + ylab('Probability of meeting CV threshold') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+#no study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+       aes(x = factor(survey_freq), y = value_cat, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
+#study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phi1')),
+       aes(x = factor(survey_freq), y = value_cat, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(variable + detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
 
 ```
+
+##### "Gains in information"  
+A more collapsed version of the results that tries to convey gains in performance when "more information" is given to the model relative to the "worse case" survey conditions (triennial branding with low detection). It shows that investing in increasing branding frequency does more for estimation precision compared with increasing detection probabilities.  
+
+It is important to note that this depiction of "gains in information" does not span all survey design options and shows gains in performance when you take sequential and joint steps of improvement. For example, this figure shows model performance with medium detection and biennial branding, or high detection and annual branding and does NOT show performance, for example, at medium detection and annual branding. 
 
 ```{r results cv delta}
 
@@ -528,7 +677,10 @@ plot_dat <- cv_delta_steps %>%
   dplyr::select(category, N, step, value_cat, variable) %>%
   bind_rows(scenario_fill) %>%
   transform(samp_size = 'Sample size') %>%
-  filter(category != 'Baseline')
+  filter(category != 'Baseline') %>%
+  transform(category = factor(category, levels = c('Baseline', 'Detection only', 
+                                                   'Frequency only', 
+                                                   'Detection & frequency'))) 
 
 #just shows straight probability of being under the cv threshold.... 
 #this is better because it shows the different relative starting points of the sample sizes
@@ -768,6 +920,67 @@ cri_highD_cat <- ggplot(plot_dat %>% filter(detection == 'Med'),
   scale_fill_manual(name = "Probability of detecting change in survival",
                     values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
+#dot plots
+dotplot_dat <- cri.all.20 %>% transform(length = 20) %>% 
+  bind_rows(cri.all %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N, threshold) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+       aes(x = survey_freq, y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding frequency') + ylab('Probability of detecting change') +
+  facet_nested(threshold + detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(1,5,2)], name = 'Years')
+
+#no study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
+#study horizon
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable %in% c('phiP', 'phi1')),
+       aes(x = factor(survey_freq), y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('CV') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+  facet_nested(variable + detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
+
 
 ```
 
@@ -834,6 +1047,48 @@ cri_20_cat <- ggplot(plot_dat %>% filter(length %in% c(20)),
                     values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
 ```
+
+##### Detecting changes across all variables  
+This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
+
+```{r cri all facets, fig.width = 9, fig.height = 10}
+
+cri_all_cat
+
+```
+
+##### Simpler view: detecting smaller or larger changes 
+In the following figures, the above information is filtered for simpler views. Here we can see a clearer picture of the effects of study horizon, sample size, and branding frequency. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
+
+```{r cri fewer facets I, fig.width = 7, fig.height = 6}
+
+cri_big_cat
+cri_small_cat
+
+
+```
+
+##### Simpler view: detecting changes at medium detection  
+This figure provides a reoriented perspective by examining probabilities of detecting small and large changes across all survey features and medium detection levels.  
+
+```{r cri fewer facets II, fig.width = 9, fig.height = 4}
+
+cri_highD_cat
+
+```
+
+##### Simpler view: detecting changes at 20 years  
+This figure is another simpler view that shows all of the facets but just a 20-year study time horizon.  
+
+```{r cri fewer facets III, , fig.width = 7, fig.height = 6}
+
+cri_20_cat
+
+```
+
+
+##### "Gains in information"  
+Similar to the above, these figures show the probability of detecting a change in survival collapsed across the survey effort features.  
 
 ```{r results threshold delta}
 
@@ -959,45 +1214,6 @@ ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
 ```
 
 
-##### Detecting changes across all variables  
-This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
-
-```{r cri all facets, fig.width = 9, fig.height = 10}
-
-cri_all_cat
-
-```
-
-##### Simpler view: detecting smaller or larger changes 
-In the following figures, the above information is filtered for simpler views. Here we can see a clearer picture of the effects of study horizon, sample size, and branding frequency. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
-
-```{r cri fewer facets I, fig.width = 7, fig.height = 6}
-
-cri_big_cat
-cri_small_cat
-
-
-```
-
-##### Simpler view: detecting changes at medium detection  
-This figure provides a reoriented perspective by examining probabilities of detecting small and large changes across all survey features and medium detection levels.  
-
-```{r cri fewer facets II, fig.width = 9, fig.height = 4}
-
-cri_highD_cat
-
-```
-
-##### Simpler view: detecting changes at 20 years  
-This figure is another simpler view that shows all of the facets but just a 20-year study time horizon.  
-
-```{r cri fewer facets III, , fig.width = 7, fig.height = 6}
-
-cri_20_cat
-
-```
-
-
 #### Relative bias  
 Relative bias was generally low for all scenarios, though higher relative bias is evident with triennial branding and small sample size. Patterns in bias for survival estimates are less apparent across levels of detection.
 
@@ -1099,7 +1315,7 @@ ggplot(plot_dat,
   geom_tile(color = 'grey50') +
   xlab('Detection') +
   ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
+  facet_nested(N ~ survey_freq + length, drop = T, 
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
   scale_fill_gradient2(name = "Relative bias (%)",
@@ -1133,39 +1349,54 @@ ggplot(plot_dat,
 #         legend.title = element_text(vjust = 0.8, size = 10)) +
 #     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
-# #dot plots
-# dotplot_dat <- rel.bias.20 %>% transform(length = 20) %>% 
-#   bind_rows(rel.bias %>% transform(length = 10)) %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(length, variable, detection, survey_freq, N) %>%
-#   # dplyr::summarize(value = mean(value),
-#   #                  lower = quantile(value, probs = 0.025),
-#   #                  upper = quantile(value, probs = 0.975),
-#     dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
-#   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-#   transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
-#   #filter out detection params
-#   filter(!is.na(variable))
+dotplot_dat <- rel.bias.20 %>% transform(length = 20) %>% 
+  bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
 
 
-# ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
-#        aes(x = detection, y = value, col = factor(length), group = length)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Detection') + ylab('Relative bias') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
-#   
-#   facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-#              scales = 'free_x') +
-#   
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+       aes(x = detection, y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Detection') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
 
+  facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20 & variable %in% c('phiP')),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
 
 
 ```
@@ -1282,36 +1513,54 @@ ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 # #dot plots
-# dotplot_dat <-rmse.20 %>% transform(length = 20) %>% 
-#   bind_rows(rmse %>% transform(length = 10)) %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(length, variable, detection, survey_freq, N) %>%
-#   # dplyr::summarize(value = mean(value),
-#   #                  lower = quantile(value, probs = 0.025),
-#   #                  upper = quantile(value, probs = 0.975),
-#     dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-#   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-#   transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
-#   #filter out detection params
-#   filter(!is.na(variable))
+dotplot_dat <- rmse.20 %>% transform(length = 20) %>% 
+  bind_rows(rmse %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
 
-# ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
-#        aes(x = detection, y = value, col = factor(length), group = length)) +
-#   geom_point() + geom_line() +
-#   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-#   xlab('Detection') + ylab('RMSE') +
-#     # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
-#   # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
-#   
-#   facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T, 
-#              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-#              scales = 'free_x') +
-#   
-#   theme_bw() +
-#   plot_theme(legend.position = 'top',
-#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-#   scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & variable == 'phiP'),
+       aes(x = detection, y = value, col = factor(length), group = length)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Detection') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(variable + samp_size + N ~ survey_frequency + survey_freq, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[c(5,2)], name = 'Years')
+
+ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20 & variable %in% c('phiP')),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Branding') + ylab('Relative bias') +
+    # facet_grid(variable~adult_p, labeller = labeller(variable = 'label_parsed'), scales = 'free') +
+  # facet_grid(variable + N ~ survey_freq, label = 'label_parsed', scales = 'free') +
+
+  facet_nested(detection ~ samp_size + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Rate')
 
 
 ```
