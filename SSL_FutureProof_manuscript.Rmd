@@ -190,28 +190,7 @@ mean.cv.20 <- data.frame(cv.20) %>%
 
 ### figures
 
-## continuous raw all facets -- for appendix
-plot_dat <- mean.cv.20 %>% filter(grepl('phi', variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
-                              labels = phi_pars))
-
-cv_heat_cont <- ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
-  geom_tile(color = 'grey50') +
-  xlab('Detection') +
-  ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
-             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-             scales = 'free_x') +
- scale_fill_gradient2(name = "cv",
-                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
-  theme_bw() +
-  theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
-        legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
-    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
-
-## continuous raw dotplots
+## continuous dotplots
 dotplot_dat_mean <- cv.20 %>% transform(length = 20) %>% 
   bind_rows(cv %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
@@ -246,16 +225,16 @@ dotplot_dat <- dotplot_dat_mean %>%
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size',
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and sample size',
             det = 'Detection')
 
-#no study horizon
-cv_cont_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+#study horizon
+cv_cont_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = survey_freq, y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
   xlab('Branding frequency') + ylab('CV') +
-  facet_nested(det + detection ~ samp_size + N, drop = T,
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
   theme_bw() +
@@ -265,6 +244,61 @@ cv_cont_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 
 
 
 ##threshold approach
+
+#dotplot 
+dotplot_dat <- cv.20 %>% transform(length = 20) %>% 
+  bind_rows(cv %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  transform(value_cat = value<0.125) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
+  #filter out detection params
+  filter(!is.na(variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and sample size',
+            det = 'Detection')
+
+#no quantile error bars on yes/no 
+cv_thresh_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+       aes(x = survey_freq, y = value_cat, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  xlab('Branding frequency') + ylab('Probability of cv < 0.125') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Survival rate')
+
+###appendix figures -- none unless want all sample sizes shown
+
+##continuous cv
+plot_dat <- mean.cv.20 %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+                              labels = phi_pars))
+
+cv_heat_cont <- ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Detection') +
+  ylab('Parameter') +
+  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+ scale_fill_gradient2(name = "cv",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "#EEEEEE", color = "black"),
+        legend.text = element_text(size = 8, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+##threshold
 
 #heatmaps
 mean.cv.thresh.20 <- data.frame(cv %>% transform(length = 10)) %>% 
@@ -294,43 +328,10 @@ scale_fill_gradient2(name = "Probability of \n cv < 0.125",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+             strip.background = element_rect(fill = "#EEEEEE", color = "black"),
         legend.text = element_text(size = 8, vjust = 0.5),
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
-
-
-#dotplot threshold
-dotplot_dat <- cv.20 %>% transform(length = 20) %>% 
-  bind_rows(cv %>% transform(length = 10)) %>%
-  merge(scenarios, by = 'scenario', all = F) %>%
-  transform(value_cat = value<0.125) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
-  dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
-  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-  #filter out detection params
-  filter(!is.na(variable)) %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
-                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
-                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size',
-            det = 'Detection')
-
-
-#no study horizon; no quantile error bars on yes/no 
-cv_thresh_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
-       aes(x = survey_freq, y = value_cat, col = factor(variable), group = variable)) +
-  geom_point() + geom_line() +
-  xlab('Branding frequency') + ylab('Probability of cv < 0.125') +
-  facet_nested(det + detection ~ samp_size + N, drop = T,
-             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-             scales = 'free_x') +
-  theme_bw() +
-  plot_theme(legend.position = 'top',
-             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-  scale_color_manual(values = rainbow2, name = 'Survival rate')
-
 
 
 ```
@@ -436,6 +437,39 @@ mean.cri.20 <- data.frame(cri.all.20) %>%
 
 #plots
 
+#dotplot
+
+dotplot_dat <- cri.all.20 %>% transform(length = 20) %>% 
+  bind_rows(cri.all %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N, threshold) %>%
+    dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
+                               labels = c('Low', 'Medium', 'High'))) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and sample size',
+            det = 'Detection') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+cri_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)
+                               &  threshold == 'dec_little'),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  xlab('Branding frequency') + ylab('Probability of detecting change in survival') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2, name = 'Survival rate')
+
+#appendix figures
+
 #all facets
 plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
@@ -464,7 +498,7 @@ scale_fill_gradient2(name = "Probability of detecting change",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+        strip.background = element_rect(fill = "#EEEEEE", color = "black")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #all facets categorical
@@ -478,7 +512,7 @@ cri_all_cat_heat <- ggplot(plot_dat %>% filter(length %in% c(10,20)),
              scales = 'free_x') +
   theme_bw() +
   theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+             strip.background = element_rect(fill = "#EEEEEE", color = "black")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
   scale_fill_manual(name = "Probability of detecting change in survival",
                     # values = c('firebrick3', 'orange', 'steelblue2'))
@@ -509,7 +543,7 @@ scale_fill_gradient2(name = "Probability of detecting change",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+             strip.background = element_rect(fill = "#EEEEEE", color = "black")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) 
 
 #categorical, small decrease
@@ -523,43 +557,11 @@ cri_big_cat_heat <- ggplot(plot_dat %>% filter(threshold %in% c('Big decrease'))
              scales = 'free_x') +
   theme_bw() +
   theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF")) +
+             strip.background = element_rect(fill = "#EEEEEE", color = "black")) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable)))))) +
   scale_fill_manual(name = "Probability of detecting small change",
                     values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
-#dotplot
-dotplot_dat <- cri.all.20 %>% transform(length = 20) %>% 
-  bind_rows(cri.all %>% transform(length = 10)) %>%
-  merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N, threshold) %>%
-    dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
-  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
-                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
-                               labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
-                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size',
-            det = 'Detection') %>%
-  #filter out detection params
-  filter(!is.na(variable))
-
-
-#no study horizon
-cri_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20
-                               &  threshold == 'dec_big'),
-       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
-  geom_point() + geom_line() +
-  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Probability of detecting large change in survival') +
-  facet_nested(det ~ detection ~ samp_size + N, drop = T,
-             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-             scales = 'free_x') +
-  theme_bw() +
-  plot_theme(legend.position = 'top',
-             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-  scale_color_manual(values = rainbow2, name = 'Survival rate')
 
 
 ```
@@ -648,11 +650,11 @@ effort_dot <- ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(variable == 'p
   # geom_point(position = position_dodge(width = 0.1)) +
   geom_point() +
   geom_line() +
-  facet_nested(threshold_name~samp_size+N+length) +
-  xlab('Stepwise change in survey effort') + ylab('Probability of detecting change in pup survival') +
+  facet_nested(threshold_name~samp_size+length+N) +
+  xlab('Increasing survey effort') + ylab('Probability of detecting change in pup survival') +
   theme_bw() +
   theme(legend.position = 'top',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+             strip.background = element_rect(fill = "#EEEEEE", color = "black"),
         legend.text = element_text(size = 8, vjust = 0.5),
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_color_manual(values = rainbow2[c(1,2,5,6)], name = '')
@@ -734,60 +736,75 @@ mean.rel.bias.20 <- data.frame(rel.bias.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', 
-            samp_size = 'Sample size') %>%
   transform(length = 20) %>%
-  bind_rows(mean.rel.bias)
+  bind_rows(mean.rel.bias) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(det = 'Detection', samp_size = 'Study horizon and sample size') 
 
 #figures
 #heatmaps
 plot_dat <- mean.rel.bias.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
-                              labels = phi_pars))
+                              labels = phi_pars)) 
 
-#need to add "length" metric" or filter and do dot plot below
-bias_heat <- ggplot(plot_dat, 
-       aes(x = factor(detection), y = variable, fill = value)) +
+
+bias_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
+       aes(x = survey_freq, y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') + ylab('Parameter') +
-  facet_nested(N ~ survey_freq + length, drop = T, 
-             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  xlab('Branding frequency') + ylab('Parameter') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T, 
+             labeller = labeller(length = occ_labels),
              scales = 'free_x') +
   scale_fill_gradient2(name = "Relative bias (%)",
                       mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
   theme_bw() +
   theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+             strip.background = element_rect(fill = "#EEEEEE", color = "black"),
         legend.text = element_text(size = 8, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
+        legend.title = element_text(vjust = 0.8, size = 10),
+        axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 #dotplots
-dotplot_dat <- rel.bias.20 %>% transform(length = 20) %>% 
+dotplot_mean <- rel.bias.20 %>% transform(length = 20) %>% 
   bind_rows(rel.bias %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(length, variable, detection, survey_freq, N) %>%
-  # dplyr::summarize(value = mean(value),
-  #                  lower = quantile(value, probs = 0.025),
-  #                  upper = quantile(value, probs = 0.975),
-    dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
+    dplyr::summarize(value = mean(value)*100, .groups = 'keep') 
+
+dotplot_low <- rel.bias.20 %>% transform(length = 20) %>% 
+  bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(lower = quantile(value*100, probs = 0.025), .groups = 'keep')
+
+dotplot_up <- rel.bias.20 %>% transform(length = 20) %>% 
+  bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(upper = quantile(value*100, probs = 0.975), .groups = 'keep')
+
+dotplot_dat <- dotplot_mean %>% 
+  merge(dotplot_up, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
+  merge(dotplot_low, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
                                labels = c('Low', 'Medium', 'High'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size',
-            det = 'Detection') %>%
+  transform(det = 'Detection', samp_size = 'Study horizon and sample size') %>%
   #filter out detection params
   filter(!is.na(variable))
 
-bias_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+bias_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
+  # geom_errorbar(aes(ymin = lower, ymax = upper)) +
   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
   xlab('Branding frequency') + ylab('Relative bias') +
-  facet_nested(det + detection ~ samp_size + N, drop = T,
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
 
@@ -835,7 +852,8 @@ mean.rmse <- data.frame(rmse) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Branding frequency & study length', 
+            samp_size = 'Sample size') %>%
   transform(length = 10) 
 
 
@@ -873,9 +891,12 @@ mean.rmse.20 <- data.frame(rmse.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 20) %>%
-  bind_rows(mean.rmse)
+  bind_rows(mean.rmse) %>%
+  transform(survey_frequency = 'Branding frequency & study length', 
+            samp_size = 'Study horizon and sample size', det = 'Detection') %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+                                 labels = c('Annual', 'Biennial', 'Triennial')))
 
 
 #plots
@@ -883,19 +904,21 @@ plot_dat <- mean.rmse.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
-rmse_heat <- ggplot(plot_dat, aes(x = factor(detection), y = variable, fill = value)) +
+rmse_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
+                    aes(x = survey_freq, y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Detection') +
+  xlab('Branding frequency') +
   ylab('Parameter') +
-  facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
+  facet_nested(det + detection ~ samp_size + length + N, drop = T, 
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
  scale_fill_gradient2(name = "RMSE",
                       mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
   theme_bw() +
   theme(legend.position = 'right',
-             strip.background = element_rect(fill = "#EEEEEE", color = "#FFFFFF"),
+             strip.background = element_rect(fill = "#EEEEEE", color = "black"),
         legend.text = element_text(size = 8, vjust = 0.5),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10),
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
@@ -914,29 +937,28 @@ dotplot_dat <- rmse.20 %>% transform(length = 20) %>%
                                labels = c('Low', 'Medium', 'High'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Sample size',
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and sample size',
             det = 'Detection') %>%
   #filter out detection params
   filter(!is.na(variable))
 
-rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length == 20),
+rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
-  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
   xlab('Branding frequency') + ylab('RMSE') +
-  facet_nested(detection ~ samp_size + N, drop = T,
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
 
   theme_bw() +
   plot_theme(legend.position = 'top',
              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
-  scale_color_manual(values = rainbow2, name = 'Rate')
+  scale_color_manual(values = rainbow2, name = 'Survival rate')
 
 ```
 
 
-### Introduction (outline)  
+### Introduction    
 
 Important concepts/paragraphs
 
@@ -966,15 +988,70 @@ Important concepts/paragraphs
 -- Conclusion sentence
 
 ### Methods  
--- Study system: briefly explain layout of different rookeries/regions/trends?
+
+-- Study system
+This study aimed to inform mark-resight survey design for Steller sea lions throughout their range, where population size, population trend and status, rookery terrain, and rookery accessibility vary considerably. For the eDPS on the U.S. West Coast and up into southeast Alaska, population trends are stable or increasing, and constraints include X, Y, Z. For the wDPS whose range spans the Aleutian Islands in Alaska, population trends are increasing or stable to the east of Samalga Pass and declining to the west of Samalga Pass. Survey considerations and constraints for rookeries in the wDPS include X, Y, Z.
+(Not much needed here because we're not deriving empirical estimates that need contextualizing -- or move to introduction?)
  
--- Model description and equations  
+-- Data simulation and model description    
+Mark-resight data were simulated over 10- and 20-year study horizons based on basic sea lion life history characteristics. Age class-specific survival and detection probabilities used as data-generating "true" values were based on empirical estimates from individuals branded, released, and resighted in the eastern DPS from 2001-2019. Temporal variance in survival probabilities was simulated based on the mean and standard deviation of age class-specific empirical estimates. Detection probabilities were assumed constant for each age class over the study period. Simulated data were fit to a Cormack Jolly Seber (Cormack 1964,) mark-resight model framework to estimate survival of five age classes (pups, age-1, age-2, juveniles (ages 3-4), and adults 5+) with true ecological states defined by an individual's age. The state process model,
+
+\begin{equation}
+z_{i,t} | z_{i,t-1} \sim ~ \text{categorical}(\Omega_{z_{i,t-1},i,t-1}) 
+\end{equation}
+
+describes the state *z* of individual *i* at occasion *t*, conditional on the individual’s state at the previous occasion, modeled as categorically distributed according to transition array $\Omega$, which is composed of age group-specific survival probabilities ($\phi_\text{i,t}$). Fecundity was not of interest in this analysis and was therefore not incorporated into study design. Temporal variance in survival probabilities was modeled using penalized complexity priors (Simpson et al. 2017, van Erp et al. 2019), where for demographic rate parameter $\gamma$, 
+
+\begin{equation}
+\text{logit}(\gamma_\text{a,t}) = \mu_\text{a}^{\gamma} + \epsilon_\text{a,t}^{\gamma} 
+\epsilon_\text{a,t}^{\gamma} \sim \text{normal}(0, \sigma_\epsilon)
+\sigma_\epsilon \sim \text{exponential}(1) 
+\end{equation}
+
+where $\mu_\text{a}^{\gamma}$ is an age (*a*)-specific intercept estimated with back-transformed uninformative priors U(0,1) on the logit scale. $\epsilon_\text{a,t}^{\gamma}$ is an annual (*t*) random effect estimated with a normal distribution with mean zero and standard deviation estimated with a fixed shrinkage rate of exponential(1). This approach reduces the coefficient $\epsilon_\text{a,t}$ toward zero in the absence of strong support for an effect and can improve parameter estimability (Simpson et al. 2017).  
+
+The observation process model included age class-specific observations of individuals based on detection probabilities that were assumed to be constant over the study period:
+
+\begin{equation}
+y_{i,t} | z_{i,t} \sim ~ \text{categorical}(\Theta_{z_{i,t} i,t})  (\#eq:obsproc)
+\end{equation}
+
+where observations $y_\text{i,t}$ conditional on the true state $z_\text{i,t}$ are categorically distributed with probability array $\Theta$, which is composed of an individual's detection probability at time *t*, $p_\text{i,t}$. The typical set of mark-recapture model assumptions applied, where it was assumed that branding did not affect detection probability, that survival of individuals was independent, there were no identification errors, mortality during the sampling season was negligible, and that there was no unmodeled heterogeneity in survival and detection probabilities.
  
--- Simulation scenarios
+-- Simulation scenarios  
+The above model was fit across 90 scenarios composed of all combinations of branding cohort sizes (N = 50, 75, 100, 150, 200), branding frequency (annual, biennial, triennial), study horizon (10 years versus 20 years), and detection rates (low, medium, high). Detection rates varied by age group, with low and high levels set at +/- 20% of the age-specific empirical estimates (e.g., detection rate levels were 0.48, 0.6, 0.72 for pups and X, Y, Z for yearlings). Resighting effort was assumed to occur annually regardless of branding schedule due to the increasing feasibility and use of remote cameras. 
  
--- Performance metrics tracked  
- 
+-- Model performance and fitting     
+We assessed model performance across four metrics: coefficient of variation (CV; $\frac{\sigma}{\mu}$), the probability of detecting a change in survival rates, relative bias ($\frac{(\bar{e_{i}}-t)}{t}*100$), and root mean square error (RMSE; $\sqrt{\text{E}[(\bar{e_i}-t)^2]}$). The CV is a useful metric for understanding precision or the degree of dispersion around the mean. Relative bias is a measure of whether estimates are systematically over- or under-estimated relative to the true data-generating value and RMSE is a combined measure of variance and bias. To examine the probability of detecting a difference between estimated survival rates and a "baseline" rate, we generated annual survival estimates using a logit normal distribution with a mean rate equal to the empirical mean multiplied by an age-specific percent difference and a standard deviation equal to that of the empirical eDPS estimates. We then examined the probability of whether the credible intervals for each survival rate excluded the original "baseline" rate (at 5, 10, 15, and 20 years into the study). We examined the probability of detecting a "smaller" decrease in survival (15%, 10%, 5%, 2.5% for pups, age-1:2, juveniles, and adults, respectively) versus a "larger" decrease in survival (20%, 15%, 10%, 5%). For example, suppose we estimate a long-term average pup survival rate of 0.55 and are interested in ascertaining the survey features with a high probability of detecting a true survival rate that is 20% (larger decrease) lower than that baseline. In this case, $\phi^{\text{p}}_{\text{sim}} = {\text{lnorm}}(0.55-0.55*0.20, \sigma_\phi^{\text{p}})$ and we recorded whether the upper limit of the 95% credible interval was less than or equal to 0.55 for each simulated dataset.  
+
+For each scenario, 100 unique datasets were simulated and fit using NIMBLE (NIMBLE Development Team 2019) within the R programming environment (R Core Development 2020) using three Markov chain Monte Carlo (MCMC) chains with 20,000 iterations, 10,000 burn-in, and a thinning rate of 3, resulting in 10,000 MCMC samples. Convergence was evaluated using visual inspection of MCMC chains and the Brooks-Gelman-Rubin statistic (Gelman & Rubin 1992; Brooks & Roberts 1998) $\hat{R}$ < 1.1. The proportion of simulations where all parameters converged was high (~95%), though convergence was a bit lower for some scenarios. 
+
 ### Results  
+
+Results for each of the model performance metrics are described below. In general, the estimation of pup and adult survival often show stronger patterns across the survey scenarios, but likely for two different reasons. Pup survival is intentionally simulated to have higher variability to reflect reality, and therefore may have poorer precision or increased bias. Adult 5+ survival, on the other hand, has minimal simulated variability but will always be informed by fewer branded cohorts, which can be influential in the shorter study time horizon (e.g., adult survival would only be informed by 2 cohorts in a 10-year study with triennial branding). 
+
+#### Big-picture take-aways  
+- Results are consistent across the different performance metrics, though the strength of the apparent patterns varies across metrics.  
+- Model performance degrades most notably across branding frequency, cohort sampling size, and study horizon, with smaller differences across detection levels.  
+- In terms of getting accurate and unbiased estiamtes of a mean survival probability, precision goals stated in MMPA permits can be reliably achieved with either a 20-year study horizon or annual branding. 
+- The probability of detecting a change in survival varies considerably across simulation scenarios and highlights the power of increasing branding frequency and cohort sample sizes if detecting a change in survival is a high research priority (as opposed to just having precise mean survival estimates). 
+
+
+#### Coefficient of variation   
+The coefficient of variation (CV) is a relative measure of precision (i.e., how dispersed estimates are around the mean) that is used in MMPA permit applications for the sea lion branding program. The CV values shown below follow an expected pattern across survey features, with the most precise estimates in larger sample sizes, the longer study horizon, and more frequent branding. 
+
+In examining the probability of the CV being below 0.125 (threshold used in MMPA permit applications for sea lion branding) across all simulations, we can see the importance of a longer study time horizon. The MMPA permit application benchmark can be achieved reliably for juveniles and adults in all scenarios and achieved reliably for younger age classes in scenarios with: (1) annual branding, (2) biennial branding over a longer study, or (3) triennial branding over a longer study with larger sample sizes. In short, sample size can compensate for other "losses" of information to a degree that increasing detection probability (within the range studied here) cannot. 
+
+#### Detecting change in survival
+This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
+
+In the following figures, the above information is filtered for simpler views. Here we can see a clearer picture of the effects of study horizon, sample size, and branding frequency. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
+
+#### Relative bias  
+Relative bias was generally low for all scenarios, though higher relative bias is evident with triennial branding and small sample size. Patterns in bias for survival estimates are less apparent across levels of detection. 
+
+#### RMSE  
+RMSE is a combined measure of bias and variance and is generally very low. Model performance in terms of RMSE follows an expected pattern with lowest RMSE in scenarios with annual branding frequency and higher cohort sizes, and particularly the 20-year study horizon. RMSE values are generally higher for age-2 and younger due to the higher variability simulated for their survival rates by design. 
  
 ### Discussion  
  
@@ -993,19 +1070,57 @@ Important concepts/paragraphs
  
 -- Goals have to be re-evaluated in iterative process
 
-- Recommendations for mark-recapture designs generally
+- Recommendations for mark-resight designs generally
 -- Example 1
  
 - Conclusion
 -- Benefits and challenges of study
 -- Important for future of dwindling funding
 
+### Figures and tables  
 
+
+```{r life cycle}
+
+```
+Figure 1. Life cycle diagram...? 
+
+```{r cv continuous dot, fig.height = 6, fig.width = 7}
+
+cv_cont_dot
+
+```
+Figure 2. Coefficient of variation for age-specific survival rates across survey design features, including branding frequency, branding cohort size, and mark-resight detection probability. 
+
+
+```{r cv threshold dot, fig.height = 6, fig.width = 8}
+
+cv_thresh_dot
+
+```
+Figure 3. Probability of the coefficient of variation for age-specific survival rates being less than 0.125 across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.
+
+
+
+```{r detect change, fig.height = 6, fig.width = 8}
+
+cri_dot
+
+```
+Figure 4. Probability of detecting a change in age-specific survival rates across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.
+
+
+```{r effort}
+
+effort_dot
+
+```
+Figure 5. Probability of detecting smaller and larger changes in pup survival with successive gains in survey effort (combinations of detection probability and branding frequency) across survey features, including branding cohort size and study horizon. 
 
 ### Literature review
 
 Pollock et al. 1990 
-- Statistical inference for capture-recapture experiments. Wildlife Monographs 107:3–97.
+- Statistical inference for capture-resight experiments. Wildlife Monographs 107:3–97.
 - recommends CV < 0.2? (Kristensen & Kovach 2018)
 
 Campbell et al. 2002
@@ -1179,6 +1294,44 @@ White et al. 2022
 
 
 
+### Appendix  
+More sample sizes, more facets. 
+
+```{r CV heatmap all facets, fig.height = 6, fig.width = 8, eval = F}
+
+cv_heat_cont
+
+```
+Figure S1. CVs across all sample sizes and survey features.
+
+```{r CV threshold heatmap all facets, fig.height = 6, fig.width = 8, eval = F}
+
+cv_thresh_heat
+
+```
+Figure S2. Probability of meeting CV threshold across all sample sizes and survey features.
+
+```{r change all facets, fig.height = 7, fig.width = 9}
+
+cri_all_cont_heat
+
+```
+Figure S3. Probability of detecting change in survival across all sample sizes and survey features. 
+
+```{r bias app, fig.height = 5, fig.width = 7}
+
+bias_heat
+bias_dot
+
+```
+Figure S4. Relative bias (%). Heat vs. dot?
 
 
+```{r RMSE app, fig.height = 5, fig.width = 7}
+
+rmse_heat
+rmse_dot
+
+```
+Figure S5. RMSE. Heat vs. dot? 
 
