@@ -42,7 +42,7 @@ scenarios <- data.frame(scenario = c(sc),
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
 p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
 freq_labels <- c('1' = 'Annual', '2' = 'Biennial', '3' = 'Triennial')
-occ_labels <- c('10' = '10 yrs', '20' = '20 yrs')
+occ_labels <- c('5' = '5 yrs', '10' = '10 yrs', '15' = '15 yrs', '20' = '20 yrs')
 
 ```
 
@@ -271,6 +271,7 @@ dotplot_dat <- cv.20 %>% transform(length = 20) %>%
 cv_thresh_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = survey_freq, y = value_cat, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   xlab('Branding frequency') + ylab('Probability of cv < 0.125') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
@@ -444,8 +445,8 @@ mean.cri.20 <- data.frame(cri.all.20) %>%
 
 #dotplot
 
-dotplot_dat <- cri.all.20 %>% transform(length = 20) %>% 
-  bind_rows(cri.all %>% transform(length = 10)) %>%
+dotplot_dat <- cri.all.20 %>% filter(length == 20) %>% 
+  bind_rows(cri.all %>% filter(length == 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(length, variable, detection, survey_freq, N, threshold) %>%
     dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
@@ -460,11 +461,26 @@ dotplot_dat <- cri.all.20 %>% transform(length = 20) %>%
   #filter out detection params
   filter(!is.na(variable))
 
-cri_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in% c(10,20)
+cri_dot_big <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in% c(10,20)
                                &  threshold == 'dec_big'),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
-  xlab('Branding frequency') + ylab('Probability of detecting difference in survival') +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Branding frequency') + ylab('Probability of detecting larger difference in survival') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[-c(1,4,6)], name = 'Survival rate')
+
+cri_dot_small <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in% c(10,20)
+                               &  threshold == 'dec_little'),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Branding frequency') + ylab('Probability of detecting small difference in survival') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -567,6 +583,36 @@ cri_big_cat_heat <- ggplot(plot_dat %>% filter(threshold %in% c('Large differenc
   scale_fill_manual(name = "Probability of detecting small change",
                     values = c('salmon', 'lightgoldenrod2', 'lightskyblue2'))
 
+#more years (5, 10, 15, 20)
+dotplot_dat <- cri.all.20 %>%  
+  bind_rows(cri.all) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N, threshold) %>%
+    dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
+                               labels = c('Low', 'Medium', 'High'))) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+                                 labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and sample size',
+            det = 'Detection') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+cri_dot_app <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) &  threshold == 'dec_big'),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Branding frequency') + ylab('Probability of detecting difference in survival') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rainbow2[-c(1,4,6)], name = 'Survival rate')
+
 
 
 ```
@@ -636,7 +682,7 @@ scenario_fill_cri <- expand.grid(step = 0,
   distinct() %>%
   dplyr::rename(value = min_val)
                             
-plot_dat <- cri_delta_steps %>%
+effort_dat <- cri_delta_steps %>%
   dplyr::select(category, N, length, threshold, step, value, variable) %>%
   bind_rows(scenario_fill_cri) %>%
   filter(category != 'Baseline') %>%
@@ -649,13 +695,14 @@ plot_dat <- cri_delta_steps %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High')))
 
 #probability of detecting change.... 
-effort_dot <- ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
+effort_dot <- ggplot(effort_dat %>% filter(!is.na(step)) %>% filter(variable == 'phiP') %>%
          transform(samp_size = 'Sample size & study length') %>%
          transform(length = factor(length, labels = c('10 yrs', '20 yrs'))), 
        aes(factor(step), value, group = category, col = category)) +
   # geom_point(position = position_dodge(width = 0.1)) +
   geom_point() +
   geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(threshold_name~samp_size+length+N) +
   xlab('Survey effort (detection + branding frequency)') + 
   ylab('Probability of detecting difference in pup survival') +
@@ -663,6 +710,7 @@ effort_dot <- ggplot(plot_dat %>% filter(!is.na(step)) %>% filter(variable == 'p
   theme(legend.position = 'top',
              strip.background = element_rect(fill = "#EEEEEE", color = "black"),
         legend.text = element_text(size = 8, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
         legend.title = element_text(vjust = 0.8, size = 10)) +
     scale_color_manual(values = rainbow2[-c(1,4,6)], name = '')
 
@@ -1037,7 +1085,7 @@ For each scenario, 100 unique datasets were simulated and fit using NIMBLE (NIMB
 
 ### Results  
 
-Model performance is detailed for each metric below, but was generally consistent across all metrics of precision and bias. In general, model performance degrades most notably across branding frequency, cohort sampling size, and study time horizon. In terms of deriving accurate and unbiased estiamtes of a mean survival probability, precision goals stated in MMPA permits can be reliably achieved for all age classes with either a 20-year study horizon or annual branding. The probability of detecting a change in survival varies considerably across simulation scenarios and highlights the power of increasing branding frequency and cohort sample sizes if detecting a change in survival is a high research priority (as opposed to just having precise mean survival estimates). In general, the estimation of pup and adult survival often show stronger patterns across the survey scenarios, but likely for two different reasons. Pup survival is intentionally simulated to have higher variability to reflect ecological theory and empirical estimates, and therefore may have poorer precision or increased bias. Adult 5+ survival, on the other hand, has minimal simulated variability but will always be informed by fewer branded cohorts, which can be influential in the shorter study time horizon (e.g., adult survival would only be informed by 2 cohorts in a 10-year study with triennial branding). 
+Model performance is detailed for each metric below, but was generally consistent across all metrics of precision and bias. In general, model performance degrades most notably across branding frequency, branding cohort size, and study time horizon. In terms of deriving accurate and unbiased estiamtes of a mean survival probability, precision goals stated in MMPA permits can be reliably achieved for all age classes with either a 20-year study horizon or annual branding. The probability of detecting a change in survival varies considerably across simulation scenarios and highlights the power of increasing branding frequency and cohort sample sizes if detecting a change in survival is a high research priority (as opposed to just having precise mean survival estimates). In general, the estimation of pup and adult survival often show stronger patterns across the survey scenarios, but likely for two different reasons. Pup survival is intentionally simulated to have higher variability to reflect ecological theory and empirical estimates, and therefore may have poorer precision or increased bias. Adult 5+ survival, on the other hand, has minimal simulated variability but will always be informed by fewer branded cohorts, which can be influential in the shorter study time horizon (e.g., adult survival would only be informed by 2 cohorts in a 10-year study with triennial branding). 
 
 #### Coefficient of variation   
 The CV values were relatively low, varied for each age class, and followed an expected pattern across survey features, with the most precise estimates arising in scenarios with larger sample sizes, the longer study horizon, and more frequent branding (`r figs('cv_cont_dot', display = 'cite')`). Posterior median CVs were generally low, but smaller for juveniles and adults (<`r round(max(mean.cv.20[mean.cv.20$variable %in% c('phiJ', 'phiA'), 'value']),2)`) and higher for younger age classes (<`r round(max(mean.cv.20[mean.cv.20$variable %in% c('phiP', 'phi1', 'phi2'), 'value']),2)`) across all scenarios. For the 20-year study horizon and medium cohort size, CV values for pup survival decreased by `r round(abs(mean.cv.20[mean.cv.20$variable == 'phiP' & mean.cv.20$N == 100 & mean.cv.20$length == 20 & mean.cv.20$detection == 'Medium' & mean.cv.20$survey_freq == 2, 'value']-mean.cv.20[mean.cv.20$variable == 'phiP' & mean.cv.20$N == 100 & mean.cv.20$length == 20 & mean.cv.20$detection == 'Medium' & mean.cv.20$survey_freq == 3, 'value']/mean.cv.20[mean.cv.20$variable == 'phiP' & mean.cv.20$N == 100 & mean.cv.20$length == 20 & mean.cv.20$detection == 'Medium' & mean.cv.20$survey_freq == 2, 'value']),2)*100`% when moving from triennial to biennial branding and decreased by 
@@ -1049,17 +1097,14 @@ In examining the probability of the CV being below 0.125 (the threshold used in 
 #### Detecting a difference in survival  
 The patterns in probability of detecting a difference between the mean survival rates estimated over the study period and a pre-established "baseline" across survey features are similar to those of CV results. Here, however, it is exceedingly important to focus on relative trends, as the reported probabilities are a direct product of the percent difference that is examined - an analytical choice that could easily be modified. As described above, we examined two sets of percent differences: a smaller (15%, 10%, 5%, 2.5% for pups, age-1:2, juveniles, and adults, respectively) and larger (20%, 15%, 10%, 5%) difference between baseline and true data-generating values. Naturally, the probability of detecting a small difference will be lower than that of detecting a large difference, as the inherent uncertainty in survival estimates captured by the posterior distribution would be more likely to overlap with a baseline threshold that is closer to the true data-generating value. We largely report results for scenarios examining data generated with a large difference from a baseline (see Appendix for probabilities of detecting a small difference). 
 
-Overall, the probability of detecting a difference in survival rates varied by age class and notably across branding frequency, cohort size, and study length (`r figs('cri_dot', display = 'cite')`). In a 10-yr study, the probability of detecting a difference is low for adults (<`r max()`) across all scenarios and reaches X-Y in the best-case scenarios (annual branding of 100-200 individuals) for pups and yearlings
+Overall, the probability of detecting a difference in survival rates varied by age class and across branding frequency, cohort size, and study length (`r figs('cri_dot', display = 'cite')`). In a 10-yr study, the probability of detecting a difference was consistently lowest for adults. The probability of reliably (>75%) detecting a large difference in adult survival in a 10-yr study was only achieved in the best survey circumstance (annual branding of the highest cohort size and detection level) and was generally only reliably achieved for other age classes with annual branding. In contrast, a large difference in adult survival was reliably detected over a 20-yr study horizon in all survey scenarios except triennial branding of the smallest cohort size. However, reliably detecting large differences in pup and yearling survival over the 20-yr study horizon still required either (a) annual branding or (b) biennial branding and larger cohort sizes, and was not reliably achieved in any scenario with triennial branding (`r figs('cri_dot', display = 'cite')`). The probabilities of detecting a smaller difference in survival was overall much lower and could only be reliably achieved for pups in a 10-yr study under the best survey circumstances or with a 20-yr study (Appendix). 
 
-This is a lot to look at, but overall, you can see that in order to achieve >80% probability of detecting a change in survival, the most influential survey features are branding schedule, sample size, study horizon, and whether you're interested in detecting a smaller or larger change in survival. 
+As noted above, we also examined the probability of detecting a difference in survival across a combined "survey effort" metric that combined branding frequency and detection probability. These results highlight the strength of increasing branding frequency in improving estimation relative to increasing detection probability (`r figs('effort_dot', display = 'cite')`). Specifically, in a 20-yr study with a smaller (N = 50) branding cohort size, increasing survey effort by improving branding frequency alone increased the probability of detecting a large difference in survival by `r abs(round(effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Branding frequency only' & effort_dat$step == 'Low', 'value']-effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Branding frequency only' & effort_dat$step == 'High', 'value']/effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Branding frequency only' & effort_dat$step == 'Low', 'value'],2))*100`% (`r effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Branding frequency only' & effort_dat$step == 'Low', 'value']*100`% to `r effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Branding frequency only' & effort_dat$step == 'High', 'value']*100`%) compared to the `r abs(round(effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Detection only' & effort_dat$step == 'Low', 'value']-effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Detection only' & effort_dat$step == 'High', 'value']/effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Detection only' & effort_dat$step == 'Low', 'value'],2))*100`% increase (`r effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Detection only' & effort_dat$step == 'Low', 'value']*100`% to `r effort_dat[effort_dat$N==50 & effort_dat$length == 20 & effort_dat$threshold == 'dec_big' & effort_dat$variable == 'phiP' & effort_dat$category == 'Detection only' & effort_dat$step == 'High', 'value']*100`%) achieved by increasing detection probabilities alone. This pattern was similar across cohort sample sizes, study lengths, and both small and large survival difference thresholds (`r figs('effort_dot', display = 'cite')`). 
 
-In the following figures, the above information is filtered for simpler views. Here we can see a clearer picture of the effects of study horizon, sample size, and branding frequency. These results show that a larger change in survival can be reliably detected in a variety of scenarios, including triennial sampling of larger cohorts over a 20-year study. However, if you want to detect a smaller change in survival, annual branding or biennial branding with larger sample sizes and a 20-year study are necessary. 
+#### Relative bias and RMSE
+Relative bias did not exhibit strong patterns across age classes and was generally low (<`r round(max(mean.rel.bias.20$value),1)`%) for all survey scenarios (`r figs('bias_dot', display = 'cite')`). Relative bias for pup survival was on average `r round(mean(mean.rel.bias.20[mean.rel.bias.20$length == 10 & mean.rel.bias.20$variable == 'phiP', 'value']),1)`% for all scenarios with a 10-yr study horizon compared to `r round(mean(mean.rel.bias.20[mean.rel.bias.20$length == 20 & mean.rel.bias.20$variable == 'phiP', 'value']),1)`% for 20-yr study designs. Similarly, average relative bias for pup survival was higher for triennial branding scenarios (`r round(mean(mean.rel.bias.20[mean.rel.bias.20$survey_freq == 'Triennial' & mean.rel.bias.20$variable == 'phiP', 'value']),1)`%) compared to that of biennial (`r round(mean(mean.rel.bias.20[mean.rel.bias.20$survey_freq == 'Biennial' & mean.rel.bias.20$variable == 'phiP', 'value']),1)`%) and annual (`r round(mean(mean.rel.bias.20[mean.rel.bias.20$survey_freq == 'Annual' & mean.rel.bias.20$variable == 'phiP', 'value']),1)`%) branding.  
 
-#### Relative bias  
-Relative bias was generally low for all scenarios, though higher relative bias is evident with triennial branding and small sample size. Patterns in bias for survival estimates are less apparent across levels of detection. 
-
-#### RMSE  
-RMSE is a combined measure of bias and variance and is generally very low. Model performance in terms of RMSE follows an expected pattern with lowest RMSE in scenarios with annual branding frequency and higher cohort sizes, and particularly the 20-year study horizon. RMSE values are generally higher for age-2 and younger due to the higher variability simulated for their survival rates by design. 
+Model performance in terms of RMSE followed an expected pattern across survey features and values were generally very low (<`r round(max(mean.rmse.20$value),2)`) across all survey scenarios (`r figs('rmse_dot', display = 'cite')`). Specifically, RMSE values were lower (indicating greater precision and lower bias) for juvenile and adult survival and higher for younger age classes. Values were higher for triennial branding and lower cohort sample sizes for both 10- and 20-year study horizons.  
  
 ### Discussion  
  
@@ -1087,13 +1132,12 @@ RMSE is a combined measure of bias and variance and is generally very low. Model
 
 ### Figures and tables  
 
-
 ```{r cv continuous dot, fig.height = 6, fig.width = 7}
 
 cv_cont_dot
 
 ```
-Figure 2. Coefficient of variation for age-specific survival rates across survey design features, including branding frequency, branding cohort size, and mark-resight detection probability. 
+`r figs('cv_cont_dot', caption = 'Mean and 95% quantiles for coefficient of variation (CV) values for age-specific survival rates across survey design features, including branding frequency, branding cohort size, study time horizon, and mark-resight detection probability across all simulations (n = 100).')`
 
 
 ```{r cv threshold dot, fig.height = 6, fig.width = 8}
@@ -1101,24 +1145,38 @@ Figure 2. Coefficient of variation for age-specific survival rates across survey
 cv_thresh_dot
 
 ```
-Figure 3. Probability of the coefficient of variation for age-specific survival rates being less than 0.125 across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.
-
+`r figs('cv_thresh_dot', caption = 'Probability of the coefficient of variation for age-specific survival rates being less than 0.125 across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.')`
 
 
 ```{r detect change, fig.height = 6, fig.width = 8}
 
-cri_dot
+cri_dot_big
 
 ```
-Figure 4. Probability of detecting a change in age-specific survival rates across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.
-
+`r figs('cri_dot_big', caption = 'Probability of detecting a larger difference in age-specific survival rates across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability.')`
 
 ```{r effort, fig.height = 6, fig.width = 8}
 
 effort_dot
 
 ```
-Figure 5. Probability of detecting smaller and larger changes in pup survival with successive gains in survey effort (combinations of detection probability and branding frequency) across survey features, including branding cohort size and study horizon. 
+`r figs('effort_dot', caption = 'Probability of detecting smaller and larger differences in pup survival with successive gains in survey effort (combinations of detection probability and branding frequency) across branding cohort size and study time horizon.')`
+
+```{r bias, fig.height = 5, fig.width = 7}
+
+bias_dot
+
+```
+`r figs('bias_dot', caption = 'Mean relative bias (%) for age-specific survival rates across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability across simulations (n = 100).')`
+
+
+
+```{r RMSE, fig.height = 5, fig.width = 7}
+
+rmse_dot
+
+```
+`r figs('rmse_dot', caption = 'Mean root mean square error (RMSE) for age-specific survival rates across survey design features, including branding frequency, study time horizon, branding cohort size, and mark-resight detection probability across simulations (n = 100).')`
 
 ### Literature review
 
@@ -1314,27 +1372,35 @@ cv_thresh_heat
 ```
 Figure S2. Probability of meeting CV threshold across all sample sizes and survey features.
 
+```{r change more yrs, fig.height = 7, fig.width = 9}
+
+cri_dot_app
+
+```
+Figure S3. Probability of detecting change in survival across all sample sizes and survey features. 
+
 ```{r change all facets, fig.height = 7, fig.width = 9}
 
 cri_all_cont_heat
 
 ```
-Figure S3. Probability of detecting change in survival across all sample sizes and survey features. 
+Figure S4. Probability of detecting change in survival across all sample sizes and survey features. 
+
 
 ```{r bias app, fig.height = 5, fig.width = 7}
 
 bias_heat
-bias_dot
+# bias_dot
 
 ```
-Figure S4. Relative bias (%). Heat vs. dot?
+Figure S5. Relative bias (%). Heat vs. dot?
 
 
 ```{r RMSE app, fig.height = 5, fig.width = 7}
 
 rmse_heat
-rmse_dot
+# rmse_dot
 
 ```
-Figure S5. RMSE. Heat vs. dot? 
+Figure S6. RMSE. Heat vs. dot? 
 
