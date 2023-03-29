@@ -1,0 +1,158 @@
+### Literature review
+
+Pollock et al. 1990 
+- Statistical inference for capture-resight experiments. Wildlife Monographs 107:3–97.
+- recommends CV < 0.2? (Kristensen & Kovach 2018)
+
+Campbell et al. 2002
+- an assessment of monitoring efforts in endangered species recovery plans; a review of 181 species
+- were proposed tasks implemented?
+  - Trend monitoring/abundance most commonly proposed recovery metric, largely because oftentimes recovery has to be initiated in the face of incomplete information and other barriers
+- Not always easy to prioritize implementing "monitoring" if other efforts (threat mitigation, captive breeding, habitat restoration) might have more direct effects on abundance
+- Species-specific monitoring plans are important 
+- Proposed/implemented monitoring generally didn't address threats
+
+Naidoo et al. 2006
+- Incorporating costs into conservation planning
+- By incorporating spatial distribution of benefits (not all areas provide equal benefits), you get a more efficient and effective outcome per dollar if account for (spatial heterogeneity of) costs
+- Types of different costs - numerous
+- Barriers: (1) biologists "invented" field of conservation and aren't trained as economists, and (spatially explicit) cost data isn't available, but number of studies are increasing; (2) many conservation plans are just difficult/infeasible to implement; (3) ecologists reluctant to include factors other than biological (economic) in conservation prioritization
+- Nice quote: "Balancing research on biodiversity features (i.e. the benefits side) with a greatly strengthened understanding of economic (and indeed other) aspects of the costs side will lead to novel and creative ways to obtain environmental benefits in the most efficient manner possible."
+
+Field et al. 2005
+Field, S.A., Tyre, A.J., Possingham, H.P., 2005. Optimizing allocation of monitoring effort under economic and observational constraints. Journal of Wildlife Management 69, 473–482.
+
+Nichols & Williams. 2006
+- Monitoring for conservation
+- Framing comparing to Platt's original criticism of collecting scientific data without clear hypothesis-testing application/goals; likens that to targeted monitoring vs. "omnimbus surveillance monitoring"; define targeted as being "integrated into conservation practice" alongside monitoring design and implementation informed by hypotheses about ecological responses to management actions
+- Surveillance often implemented to "learn more about a system", which can be helpful, but doesn't get at effective and efficiency criteria
+- Conservation "rooted in decision theory"; the need for making state-dependent decisions (includes confidence about model, quantifying uncertainty, etc)
+- Informed decision processes and adaptive management: objectives, management actions, model of response to management action, measure of confidence, and monitoring program that provides estimates of system state
+- Understandable that "omnibus" monitoring is so prevalent - could arguably be most versatile as questions arise and cover most species? not arguing fully against it, just that it might not be the most efficient
+- Surveillance often triggered by identifying a decline; better if possible to understand best remedy for recovery rather than reason for decline
+- Particularly important in a time with limited conservation funding and such widespread conservation need 
+- Very nice paper
+
+Field et al. 2007
+Field, S.A., O’Connor, P.J., Tyre, A.J., Possingham, H.P., 2007. Making monitoring meaningful. Austral Ecology 32, 485–491. 
+- Estimates need to be accurate/precise to be useful/answer the right questions
+- Citation for not commonly done?
+
+Taylor et al. 2007
+Lessons from monitoring trends in abundance of marine mammals. Marine Mammal Science 23, 157175.
+- Failure to plan wastes valuable resources
+
+Lyons et al. 2008
+Lyons, J.E., Runge, M.C., Laskowski, H.P., Kendall, W.L., 2008. Monitoring in the context of structured decision-making and adaptive management. Journal of Wildlife Management 72, 1683–1692.
+- Information should be useful, i.e. affect decision-making; wastes resources if fail to improve the process and miss documenting things you intended to
+
+Reynolds et al. 2011
+- Nice intro framing
+- Identifying effective and efficient survey designs for monitoring
+- Monitoring program only "effective" if it produces info with sufficient accuracy/precision to answer scientific questions and influence decisions
+- Generally, speed at detecting a change is important, but resources constrain, so need efficient: quickest detection for lowest cost (*Sims et al. 2008*)
+- Effectiveness and efficiency determined by survey design; sampling effort (per survey) and survey frequency main components of this effective-efficient trade-off spectrum
+- Despite importance, not often done (Legg & Nagy 2006, Lindenmayer & Likens 2009)
+- Risks: resources that could have gone elsewhere are wasted, and program's efficacy/ineffectiveness may be unresolved due to natural variability in the state process, and lose opportunity to have well-defined management objectives, loss of long-term institutional support/funding; can create a "falst sense of management performance", doesn't promote true understanding of costs of (helpful) information
+- Planning becomes more important and more complex with increasingly complex observation processes (sources of bias, logistical constraints, multiple sources of variability)
+- Applied to brown bears in Alaska
+- Management objectives, actions, and information needs
+
+Torrubia et al. 2014
+- Getting most connectivity per conservation dollar; Washington ground squirrel (Urocitellus washingtoni)
+- Found that incorporating spatially explicit cost information improved efficiency (reduced overall costs and increase % land restored) of conservation actions
+- Very land/terrestrial/connectivity-focused
+
+Sun et al. 2014
+- Trap configuration in spatial MR; black bear (ursus americanus)
+- Different configurations (spacing and number of traps) work, but highly dependent on home range size
+- Varied detection and spatial scaling parameters (how much animal travels relative to home range?)
+
+Peel et al. 2014
+- Mark-recapture simulations for acoustic abundance estimates of whales (Antactic blue)
+- Lower encounter rates for rare species (line transects and mark-resight)
+- Aimed to assist in planning mark-recap surveys for whales (pre-planning side of things)
+- Densely detailed information about encounter rates, vocalization/movement assumptions; not a clear explanation of the survey features that they were examining across.... mainly showed that the acoustic assistance improves estimation over mark-recapture alone
+
+Wilton et al. 2014
+- Trap precision configuration influences black bear density/abundance estimation
+- Mainly tested bias under proposed study designs, but found that situations with low density and non-uniform distribution required more thoughtful trade-offs about snare spacing, coverage, and sample sizes to achieve precision
+
+Peel et al. 2015
+- Same study/issue as above, better citation - more focused on study design
+- Estimates of abundance have to be appropriately precise to be useful (Reynolds et al 2011)
+- Marine mammal surveys (particularly for dispersed and remote areas) can be challenges and expensive (Williams and Thomas 2009), making planning really important to make sure resources aren't wasted
+- CV across true mortality, sex ratio, model, and growth rates, and survey features (number of vessels, survey length, distribution of effort)
+- Pre-survey planning simulations are important to ensure that investment meets desired precision and is able to answer the questions being asked
+
+Yackulic et al. 2015
+- Modeled species interactions and simulated different underlying state processes to examine when bias might be an issue (citation for examining specific situation rather than using to design study beforehand)
+
+Lyons et al. 2015
+- Superpopulation size, proportion marked, and number of animals sampled (stopover duration for red knot sandpipers; Calidris canutus roselaari)
+- Relative bias less affected by number of birds per scan sample or superpopulation size
+- Accuracy (as measured by RMSE) improved with more scans per day and with larger scan sample sizes; same with CV
+
+Evans et al. 2016. 
+- Species recovery in the United States: increasing the effectiveness of the ESA
+- Insufficient funding for species recovery, and not proportional across taxa (mostly for fish; salmon/sturgeon)
+- Funding shortages bring trade-offs front and center; allocations more often driven by political/social factors
+- Mitigations necessary for climate change will likely further constrain recovery resources
+- Limited resources often preclude adaptive management feedback applications
+
+Galvez et al. 2016
+- Incorporating costs into camera trap surveys
+- "Paucity of research examining how to allocate survey effort to optimize estimation that takes into account operational costs"
+- Incorporate costs per sampling unit, then look across survey lengths and number of cameras needed to achieve precision targets given detection/occupancy scenarios
+- Generally more cost-efficient to do multiple camera traps over fewer occasions because travel/salaries are big part of costs, particularly for elusive species
+
+# Gonzalez et al. 2016
+# - UAVs and AI monitoring for the future
+
+Lanier et al. 2016
+- Effects of survey design on demography, simulation for frogs, open robust design
+- Synchronous vs. asynchronous breeding, logistical access (whether breeding grounds can be surveyed)
+- Fairly large range of bias in survival across scenarios
+
+# Little et al. 2016
+# - trade-offs for cost-constrained fisheries management
+# - lots of lists of all the different "risks" that incur more costs (e.g., the need to implement a control rule for additional cost)
+# - risk (of overfishing)-catch-cost frontier.... easier to derive benefits for fisheries compared to wildlife monitoring
+
+Sackett & Catalano 2017
+- Red snapper (Lutjanus campechanus) in GoM; recreational fishing mortality; sample size (number tagged), fishing effort, fish density, tag loss - lots of facets
+- Results included "most cost effective study design"
+- High vs. variable reward fish tags
+- Precision improved with increasing sample sizes, but so does costs
+- Lots of details testing specific study designs
+- Have to consider incentive vs. reporting rate
+
+Armsworth et al. 2017
+- Argue that factoring in economic costs doesnt always improve efficiency - sometimes can exacerbate disagreements about priorities.... still have to be very specific about protection efforts and how to quantify benefits
+- Disagreements are worst when benefits data are more variable
+- Benefits of accounting for cost are more variable when cost data are more variable
+- Simulation approach
+
+Kristensen & Kovach 2018
+- SECR and new england cottontail (Sylvilagus transitionalis)
+- Studies are less common for smaller individuals; conclude optimal study designs will vary among organisms (habitat use and spatial extent), so pilot planning is important
+- *Campbell et al. 2002* abundance is the most common quantitative metric in recovery plans and delisting criteria, key parameter underlying extinction risk
+- *Need good abundance estimates to measure response to management actions (Nichols & Williams 06; Johnston et al. 2015)*
+- CV and relative bias; number of survey occasions, pellet collection spacing, true density, transect spacing all important predictors; number of survey occasions less impactful?
+- "When detectability was low (g0 = 0.1), both additional detectors and more frequent sampling were required to achieve the desired levels of precision than with higher detectability (g0 = 0.2)"
+- *Pollock et al 1990* recommends CV < 0.2? 
+- Also found that true density had large effect on performance, had to compensate for low density by upping observation metrics
+- Nice examples of when management goals affect needed precision: tracking fate of reintroduction (maybe need to ensure less bias and higher precision) compared to responses to habitat management (number alive with low precision acceptable?)
+
+Durden et al. 2021
+- Bottlenose dolphine (Tursiops truncatus truncatus) in Indian River Lagoon
+- Robust design and survey optimization simulation; limited description of results - mainly validating their design - checking precision; but also looking for ways to reduce survey effort without losing precision, and suggest importance of long-term planning
+
+Freeman et al. 2021
+- SECR on small mammals; number of trapping occasions, trap number - both metrics improved estimation; salt marsh harvest mouse (Reithrodontomys raviventris)
+
+White et al. 2022
+- Decision support framework for assessing costs and benefits of conservation actions
+- Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied
+- Mainly a how-to
+
