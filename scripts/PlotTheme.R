@@ -6,6 +6,7 @@ plot_theme <- function(...) {
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 11), 
     axis.text = element_text(vjust = 0.5, color = "black", size = 11), 
     axis.title = element_text(size = 11.5),
+    axis.title.x = element_text(vjust = -1),
     axis.line.y = element_line(colour = "black"), 
     axis.line.x = element_line(colour = "black"), 
     plot.background = element_rect(), 
