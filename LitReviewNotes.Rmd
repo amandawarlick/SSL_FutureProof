@@ -55,7 +55,7 @@ Reynolds et al. 2011
 - Monitoring program only "effective" if it produces info with sufficient accuracy/precision to answer scientific questions and influence decisions
 - Generally, speed at detecting a change is important, but resources constrain, so need efficient: quickest detection for lowest cost (*Sims et al. 2008*)
 - Effectiveness and efficiency determined by survey design; sampling effort (per survey) and survey frequency main components of this effective-efficient trade-off spectrum
-- *Despite importance, not often done (Legg & Nagy 2006, Lindenmayer & Likens 2009)*
+- Despite importance, not often done (Legg & Nagy 2006, Lindenmayer & Likens 2009)
 - Risks: resources that could have gone elsewhere are wasted, and program's efficacy/ineffectiveness may be unresolved due to natural variability in the state process, and lose opportunity to have well-defined management objectives, loss of long-term institutional support/funding; can create a "falst sense of management performance", doesn't promote true understanding of costs of (helpful) information
 - Planning becomes more important and more complex with increasingly complex observation processes (sources of bias, logistical constraints, multiple sources of variability)
 - Applied to brown bears in Alaska
@@ -87,8 +87,8 @@ Wilton et al. 2014
 - Marine mammal surveys (particularly for dispersed and remote areas) can be challenging and expensive (Williams and Thomas 2009), making planning really important to make sure resources aren't wasted
 - CV across true mortality, sex ratio, model, and growth rates, and survey features (number of vessels, survey length, distribution of effort)
 - Pre-survey planning simulations are important to ensure that investment meets desired precision and is able to answer the questions being asked
-
-Yackulic et al. 2015
+ 
+ Yackulic et al. 2015
 - Modeled species interactions and simulated different underlying state processes to examine when bias might be an issue (citation for examining specific situation rather than using to design study beforehand)
 
 Lyons et al. 2015
@@ -139,8 +139,8 @@ Armsworth et al. 2017
 Kristensen & Kovach 2018
 - SECR and new england cottontail (Sylvilagus transitionalis)
 - Studies are less common for smaller individuals; conclude optimal study designs will vary among organisms (habitat use and spatial extent), so pilot planning is important
-- *Campbell et al. 2002* abundance is the most common quantitative metric in recovery plans and delisting criteria, key parameter underlying extinction risk
-- *Need good abundance estimates to measure response to management actions (Nichols & Williams 06; Johnston et al. 2015)*
+- Campbell et al. 2002 abundance is the most common quantitative metric in recovery plans and delisting criteria, key parameter underlying extinction risk
+- Need good abundance estimates to measure response to management actions (Nichols & Williams 06; Johnston et al. 2015)
 - CV and relative bias; number of survey occasions, pellet collection spacing, true density, transect spacing all important predictors; number of survey occasions less impactful?
 - "When detectability was low (g0 = 0.1), both additional detectors and more frequent sampling were required to achieve the desired levels of precision than with higher detectability (g0 = 0.2)"
 - *Pollock et al 1990* recommends CV < 0.2? 
@@ -156,6 +156,6 @@ Freeman et al. 2021
 
 White et al. 2022
 - Decision support framework for assessing costs and benefits of conservation actions
-- Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied
+- *Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied*
 - Mainly a how-to
 

@@ -1061,19 +1061,24 @@ Target journal: Journal of Wildlife Management; Marine Mammal Science
 
 ### Introduction    
 
-Knowledge about vital rates, population dynamics, and trends in abundance are essential for wildlife conservation and management. However, this information can be difficult to obtain at the level of precision that is useful for answering pressing management questions or developing meaningful and achievable conservation targets. For a depleted or declining population, the ideal survey design would be one that would be able to facilitate detecting a change in population status most expediently. However, funding limitations in natural resource and wildlife fields dictate that the ideal survey design be both effective and efficient, delivering the quickest (and most precise) possible answers at the lowest cost (Field et al. 2005, Field et al. 2007, Sims et al. 2008, Reynolds et al. 2011). In addition to cost, it may be invasive, disruptive, or logistically challenging to obtain data at the level of precision that is required to address monitoring objectives, particularly for small, declining, or remote populations. It is therefore critically important to develop wildlife monitoring programs that optimize the trade-offs between survey effort (and the resulting quality of information obtained) and survey cost for a given wildlife species, population, or habitat location of interest. Unfortunately, statistical power analyses or simulation analyses that inform choices about survey design are seldom conducted before monitoring programs are implemented (Legg & Nagy 2006, Lindenmayer & Likens 2009), potentially leading to wasted funding resources, lost opportunities for implementing adaptive management, reduced public trust, and perpetuating underperforming monitoring programs. 
+Knowledge about vital rates, population dynamics, and trends in abundance are essential for wildlife conservation and management. However, this information can be difficult to obtain at the level of precision that is useful for answering pressing management questions or developing meaningful and achievable conservation targets. For a depleted or declining population, the ideal survey design would be one that would be able to facilitate detecting a change in population status most expediently. However, funding limitations in natural resource and wildlife fields dictate that the ideal survey design be both effective and efficient, delivering the quickest (and most precise) possible answers at the lowest cost (Field et al. 2005, Field et al. 2007, Sims et al. 2008, Reynolds et al. 2011). In addition to being costly, it may also be invasive, disruptive, or logistically challenging to obtain data at the level of precision that is required to address monitoring objectives, particularly for small, declining, or remote populations. It is therefore critically important to develop wildlife monitoring programs that optimize the trade-offs between survey effort (and the resulting quality of information obtained) and survey cost for a given wildlife species, population, or habitat location of interest. Unfortunately, statistical power analyses or simulation analyses that inform choices about survey design are seldom conducted before monitoring programs are implemented (Legg & Nagy 2006, Lindenmayer & Likens 2009), potentially leading to wasted funding resources, lost opportunities for implementing adaptive management, reduced public trust, and perpetuating underperforming monitoring programs. 
 
-Wildlife monitoring programs are often focused on tracking trends in abundance or vital rates that can inform status assessments, track progress toward recovery goals, or lend insight into the effects of environmental variability or anthropogenic stressors on population dynamics or extinction risk. When monitoring plans fail to meet these kinds of monitoring objectives, practitioners risk incorrectly declaring that a species or population does not meet an established criteria for management intervention, or conversely investing in developing additional mitigation measures that were not in fact warranted. Similarly, without sufficiently precise population monitoring data, resource managers could fail to detect that an allowable take level was exceeded for a threatened species, or overly restrict other resource uses if a mortality or take level was overestimated. In these contexts, imperfect detection during observations of complex ecological processes leads to varying degrees of uncertainty about the underlying processes (i.e., vital rates, environmental effects) or quantities (i.e., abundance, trends) of interest. This degree of uncertainty (and level of precision or bias in parameter estimates) is largely determined by survey effort, which often comprises multiple factors, including but not limited to the number of surveyed sites, the number of repeat surveys, the number of surveyed or marked individuals, and the duration of the study. All of these features have distinct advantages and cost profiles that are entirely dependent on the context of the study, including the life history characteristics of the species, the habitat, the conservation status, and monitoring objectives (Taylor et al. 2007).  
+Wildlife monitoring programs are often focused on tracking trends in abundance or vital rates that can inform status assessments and predictions of extinction risk (Campbell et al. 2002), track progress toward recovery goals or response to management actions (Nichols & Williams 2006, Johnston et al. 2015), or lend insight into the effects of environmental variability or anthropogenic stressors on population dynamics. Without sufficiently precise population monitoring data, resource managers could fail to detect that an allowable take level was exceeded for a threatened species, or overly restrict other resource uses if a mortality or take level was overestimated. However, the level of precision that is required to adequately inform these types of diverse monitoring objectives varies across habitats, species density, range extent, and management goals (Kristensen & Kovach 2018). For example, a higher level of precision and lower bias may be required to track the fate of a species reintroduction relative to the precision needed to detect a response to a habitat restoration intervention. When monitoring plans fail to meet these kinds of monitoring objectives, practitioners risk incorrectly declaring that a species or population does not meet an established criteria for management intervention, or conversely investing in developing additional mitigation measures that were not in fact warranted. In these contexts, imperfect detection during observations of complex ecological processes leads to varying degrees of uncertainty about the underlying processes (i.e., vital rates, environmental effects) or quantities (i.e., abundance, trends) of interest. This uncertainty (and level of precision or bias in parameter estimates) is largely determined by survey effort, which often comprises multiple factors, including but not limited to the number of surveyed sites, the number of repeat surveys, the number of surveyed or marked individuals, and the duration of the study. All of these features have distinct advantages and cost profiles that are entirely dependent on the context of the study, including the life history characteristics of the species, the habitat, the conservation status, and monitoring objectives (Taylor et al. 2007), and therefore should be evaluated on an individul basis. 
 
 Despite the importance of developing effective and efficient monitoring plans, numerous barriers often prevent wildlife practitioners from rigorously and statistically examining the trade-offs between survey effort, data quality, monitoring objectives, and costs prior to initiating a monitoring program. These barriers can arise from institutional, logistical, or even ecological situations. First, funding for wildlife monitoring programs often fluctuates over time (due to political regimes or change in a population's conservation status) and allocations may not come at predictable intervals or in sufficient amounts to afford additional time for simulation analyses that inform survey design. Additionally, monitoring costs may be difficult to quantify in such a way as to directly relate to demographic estimation (e.g., costs are more easily aggregated per field technician or per survey trip as opposed to being able to apportion costs per individual animal marked, nest surveyed, number of observation days, etc.). Monitoring costs may also be unpredictable due to logistical challenges of safely and consistently surveying dynamic or remote locations. Second, expertise to conduct such analyses may also be lacking. Third, poorly defined monitoring objectives that lack specific quantitative metrics makes conducting pre-survey design studies challenging, as there may not be a specified quantity of interest to "optimize". Nebulous monitoring objectives often perpetuate ongoing "surveillance" monitoring, which certainly can lead to improved insights about species and ecological processes, but is likely not the most efficient use of resources (Nichols & Williams 2006). These situations can arise when risk tolerances for making incorrect conservation decisions is difficult to elicit or quantify across diverse stakeholders. Due to these and other barriers and constraints, simulation studies are most often conducted *post-hoc* to validate model results by confirming that the survey protocol used for a given study generally produces asymptotically unbiased estimates or achieves a reasonable level of precision (Sun et al. 2014, Wilton et al. 2014, Lyons et al. 2015, Yackulic et al. 2015, Himes Boor et al. 2023). 
 
-Designing a comprehensive, effective, and efficient monitoring program for Steller sea lions (*Eumetopias jubatus*) is foundational for ongoing efforts to understand drivers of population dynamics in a cost effective way that maximizes the utility of limited available resources. Steller sea lion abundance declined considerably throughout the 1970-80s's, leading the species to be listed as Threatened under the Endangered Species Act (ESA). The species was subsequently divided into eastern and western distinct population segments (eDPS and wDPS, respectively). The eDPS (ranging from northern California into southeast Alaska) recovered and was delisted in 2013 while the wDPS (ranging from the Gulf of Alaska across the Aleutian Islands into Russia) maintains an Endangered status as abundance in certain rookeries has continued to decline for unknown reasons. Efforts to design a comprehensive monitoring program is complicated by the diverse landscapes, varying rookery breeding population sizes, and abundance trends across the species range. For rookeries in the eDPS where trends are stable or increasing, monitoring priorities include X and constraints include Y. In contrast, for rookeries in the wDPS where trends are varied, monitoring priorities are X and constraints include Y. In this study, we present a simulation analysis examining parameter precision and the ability to detect a change in survival probabilities estimated using a mark-resight model framework across a range of survey features, including the size of the marked population, marking frequency, detection probability, and study length.  
+Designing an effective and efficient monitoring program for Steller sea lions (*Eumetopias jubatus*) is foundational for ongoing efforts to understand drivers of population dynamics in a cost effective way that maximizes the utility of limited available resources. Steller sea lion abundance declined considerably throughout the 1970-80s's, leading the species to be listed as Threatened under the Endangered Species Act (ESA). The species was subsequently divided into eastern and western distinct population segments (eDPS and wDPS, respectively). The eDPS (ranging from northern California into southeast Alaska) recovered and was delisted in 2013 while the wDPS (ranging from the Gulf of Alaska across the Aleutian Islands into Russia) maintains an Endangered status as abundance in certain rookeries has continued to decline for unknown reasons. Efforts to design a comprehensive monitoring program is complicated by the diverse landscapes, varying rookery breeding population sizes, and abundance trends across the species range. In this study, we present a simulation analysis examining parameter precision and the ability to detect a change in survival probabilities estimated using a mark-resight model framework across a range of survey features, including the size of the marked population, marking frequency, detection probability, and study length.  
 
 Though the aim of this work was to inform the design of ongoing and future monitoring for Steller sea lions, the concepts and framework apply to other species or populations where mark-resight data are collected for the purpose of understanding demographic trends. Despite the challenges of conducting pre-survey studies to ensure that a given survey design will produce demographic estimates of sufficient precision at the lowest cost, not doing so risks wasting resources and/or not obtaining information critical for conservation decisions.  
 
 
 
 ### Methods  
+
+#### Study system  
+Though this is a prospective study to inform a future monitoring program, we provide a brief summary of historical mark-resight survey effort across the Steller sea lion range to contextualize model results, evaluate potential for achieving precision targets with available mark-resight data, and future recommendations. In the eDPS where trends are stable or increasing, monitoring priorities include detecting trends in survival and evaluating the effects of environmental conditions on demography. From 2001-2015, eight cohorts of 150-200 sea lions have been marked and released biennially and resighted annually up through 2018 (citation?). In the wDPS, mark-resight effort is varied across the Gulf of Alaska and Aleutian Islands management subregions. East of Samalga Pass where population trends are stable or increasing, 3-6 cohorts ranging from approximately 100 to 200 sea lions have been marked and released biennially or triennially in three subregions and resighted nearly annually. West of Samalga Pass where populations are smaller and trends are decreasing, 3-4 cohorts of approximately 50 sea lions have been marked and released biennially since 2011 and resighted nearly annually.   
+
+Add SE alaska....? Don't have the details. 
 
 #### Data simulation and model description    
 Mark-resight data were simulated over 10- and 20-year study horizons based on basic sea lion life history characteristics. Age class-specific survival and detection probabilities used as data-generating "true" values were based on empirical estimates from individuals branded, released, and resighted in the eastern DPS from 2001-2019. Temporal variance in survival probabilities was simulated based on the mean and standard deviation of age class-specific empirical estimates. Detection probabilities were assumed constant for each age class over the study period. Simulated data were fit to a Cormack Jolly Seber (Cormack 1964,) mark-resight model framework to estimate survival of five age classes (pups, age-1, age-2, juveniles (ages 3-4), and adults 5+) with true ecological states defined by an individual's age. The state process model,
@@ -1141,23 +1146,29 @@ Model performance in terms of RMSE followed an expected pattern across survey fe
  
 ### Discussion  
  
-- Aims/results/methods review
--- Review most compelling results
--- Summarize benefits/applications/importance
+This study examined the precision and bias in the estimation of vital rates across a range of mark-recapture survey features including marked cohort size, marking frequency, study length, and detection probabilities to inform the development of effective survey designs for Steller sea lions that meet management objectives for the two distinct population segments. Our results highlight numerous survey design configurations that reliably (>75% probability) produce CV values that meet established thresholds and detect a difference in survival rates, though the longer study horizon was important in achieving these metrics for the survival rates of younger individuals that are by nature more variable. Overall, we found that increasing branding frequency and study length are more influential than increasing detection probabilities for a given cohort population size. Taken together, our findings emphasize the importance of evaluating model performance across survey design features with specific management targets, conservation goals, and risk thresholds in mind. 
+
+In the context of this study, our results as applied to existing and future Steller sea lions confirm that a comprehensive range-wide monitoring program for the species must account for regional differences in the size and longevity of the existing marked population, constraints on future marking cohort size, rookery accessibility, and management goals given populations' conservation status. For the eDPS and rookeries in the wDPS to the east of Samalga Pass, the survey design which has typically had cohort sizes of 150-200 individuals and biennial branding frequency over 15-20 years would be sufficient to continue reliably achieving target CV precision thresholds and being able to detect a trend in survival for all age classes examined here as long as medium to high detection rates were maintained. If resources were limited, monitoring for the eDPS could be relaxed to triennial marking, though the probability of detecting a change or trend in survival for pups would likely become less reliable (<75%). Achieving these thresholds is conditional on continuing to resight preexisting individuals already in the marked population (i.e., focusing on results from the 20-year study horizon), as the probabilities for detecting a change in survival and lower CV values were considerably lower for shorter study horizons. 
+
+In contrast to the eDPS and stable subregions of the wDPS, our results indicate that historical and ongoing mark-resight survey effort for rookeries in the wDPS to the west of Samalga Pass has been insufficient to reliably achieve CV precision targets for younger age classes or detect differences in survival probabilities for any age. This inadequacy/result is largely due to the combination of the shorter study period (branding began in 2011 rather than 2001) and the smaller branding cohort size. As future branding cohort sizes will be limited by dwindling rookery population size,  increasing sample sizes through either annual branding (largely infeasible due to costs of accessing remote rookeries in the central and western Aleutians) or simply continuing to grow the marked population via biennial branding to extend the study horizon to more closely match that of the other regions. However, even in survey scenarios with 20-year study horizons, the probability of detecting a difference in survival with smaller cohort sizes (i.e., *n* = 50) was still only approximately 45-60% for pups and yearlings. Considering these constraints, it will be important to reassess conservation targets and carefully weigh the costs and benefits of potential monitoring strategies for these declining subregions. Though specific demographic trends or precision targets are not directly considered in listing decisions for this species, the abundance trends in these subregions have been deciding factors in maintaining the Endangered status of the wDPS. 
  
-- Review other studies that have done this?
--- Example 1
+Though here we have examined model performance across numerous survey features, future work could optimize survey design choices by including a robust analysis of monitoring costs. Incorporating cost information into conservation planning, particularly spatially-explicit cost information, can improve the efficiency of monitoring programs (Naidoo et al. 2006, Torrubia et al. 2014, Galvez et al. 2016) but can also exacerbate disagreements about conservation priorities (Armsworth et al. 2017). Efforts to incorporate and assess monitoring costs are often hampered by the challenges of reporting relevant information (White et al. 2022), including the difficulties in estimating expenditures for a specific survey feature (i.e., costs of spending additional days in the field to increase detection versus additional time marking and releasing additional individuals). In the case of Steller sea lions,... given inflation costs (salaries, boat/plane, etc costs) and steady/declining program funding resources, future programs will be constrained in X, Y, Z. These constraints may dampen the ability of this and other similar monitoring programs to expand/enhance monitoring effort in response to changing management needs and/or the rising need to ramp up monitoring effects of climate-change related effects. 
+
+Though rare, a few studies have done this with good success 
+-- Example 1 Peel et al. 2015
 -- Example 2
- 
-- What it means for SSL  
--- Study design must also consider "risk tolerance" and management goals
+-- What we learned from doing this.
+ -- Study design must also consider "risk tolerance" and management goals
+ -- What are those for SSL? They vary across space (and time as management needs change?)
 
--- What are those for SSL? They vary across space (and time as management needs change?)
- 
+- Future work would benefit from X (incorporting costs)
+- Benefits of incorproating costs
 -- Goals have to be re-evaluated in iterative process
+-- Citations of spatially-explicit 
 
-- Recommendations for mark-resight designs generally
--- Example 1
+- Evans et al - species recovery in the U.S. (evans et al. 2016)
+- Recommendations for mark-resight designs generally -- more quantitative demography in rec plans? 
+- Implementation of "monitoring" and triggers thereof
  
 - Conclusion
 -- Benefits and challenges of study
@@ -1220,6 +1231,55 @@ rmse_dot
 
 ### Literature cited
 
+Armsworth, P.R., Jackson, H.B., Cho, S.-H., Clark, M., Fargione, J.E., Iacona, G.D., Kim, T., Larson, E.R., Minney, T., Sutton, N.A., 2017. Factoring economic costs into conservation planning may not improve agreement over priorities for protection. Nat Commun 8, 2253. https://doi.org/10.1038/s41467-017-02399-y
+
+Burton, A.C., Neilson, E., Moreira, D., Ladle, A., Steenweg, R., Fisher, J.T., Bayne, E., Boutin, S., 2015. REVIEW: Wildlife camera trapping: a review and recommendations for linking surveys to ecological processes. Journal of Applied Ecology 52, 675–685. https://doi.org/10.1111/1365-2664.12432
+
+Campbell, S.P., Clark, J.A., Crampton, L.H., Guerry, A.D., Hatch, L.T., Hosseini, P.R., Lawler, J.J., O’Connor, R.J., 2002. AN ASSESSMENT OF MONITORING EFFORTS IN ENDANGERED SPECIES RECOVERY PLANS. Ecological Applications 12, 674–681. https://doi.org/10.1890/1051-0761(2002)012[0674:AAOMEI]2.0.CO;2
+
+Del Vecchio, S., Fantinato, E., Silan, G., Buffa, G., 2019. Trade-offs between sampling effort and data quality in habitat monitoring. Biodivers Conserv 28, 55–73. https://doi.org/10.1007/s10531-018-1636-5
+
+Evans, D.M., Che-Castaldo, J.P., Crouse, D., Davis, F.W., Epanchin-Niell, R., Flather, C.H., Frohlich, R.K., Goble, D.D., Li, Y.-W., Male, T.D., Master, L.L., Moskwik, M.P., Neel, M.C., Noon, B.R., Parmesan, C., Schwartz, M.W., Scott, J.M., Williams, B.K., 2016. Species recovery in the United States: Increasing the effectiveness of the Endangered Species Act.
+
+Field, S.A., Tyre, A.J., Possingham, H.P., 2005. Optimizing allocation of monitoring effort under economic and observation constraints.. Journal of Wildlife Management 69, 473–482. https://doi.org/10.2193/0022-541X(2005)069[0473:OAOMEU]2.0.CO;2
+
+Gálvez, N., Guillera-Arroita, G., Morgan, B.J.T., Davies, Z.G., 2016. Cost-efficient effort allocation for camera-trap occupancy surveys of mammals. Biological Conservation 204, 350–359. https://doi.org/10.1016/j.biocon.2016.10.019
+
+Gonzalez, L.F., Montes, G.A., Puig, E., Johnson, S., Mengersen, K., Gaston, K.J., 2016. Unmanned Aerial Vehicles (UAVs) and Artificial Intelligence Revolutionizing Wildlife Monitoring and Conservation. Sensors 16, 97. https://doi.org/10.3390/s16010097
+
+Ivan, J.S., White, G.C., Shenk, T.M., 2013. Using simulation to compare methods for estimating density from capture–recapture data. Ecology 94, 817–826. https://doi.org/10.1890/12-0102.1
+
+Johnston, A., Fink, D., Reynolds, M.D., Hochachka, W.M., Sullivan, B.L., Bruns, N.E., Hallstein, E., Merrifield, M.S., Matsumoto, S., Kelling, S., 2015. Abundance models improve spatial and temporal prioritization of conservation resources. Ecological Applications 25, 1749–1756. https://doi.org/10.1890/14-1826.1
+
+Kristensen, T.V., Kovach, A.I., 2018. Spatially explicit abundance estimation of a rare habitat specialist: implications for SECR study design. Ecosphere 9, e02217. https://doi.org/10.1002/ecs2.2217
+
+Lanier, W.E., Bailey, L.L., Muths, E., 2016. Integrating biology, field logistics, and simulations to optimize parameter estimation for imperiled species. Ecological Modelling 335, 16–23. https://doi.org/10.1016/j.ecolmodel.2016.05.006
+
+Little, L.R., Punt, A.E., Dichmont, C.M., Dowling, N., Smith, D.C., Fulton, E.A., Sporcic, M., Gorton, R.J., 2016. Decision trade-offs for cost-constrained fisheries management. ICES Journal of Marine Science 73, 494–502. https://doi.org/10.1093/icesjms/fsv206
+
+Lyons, J.E., Kendall, W.L., Royle, J.A., Converse, S.J., Andres, B.A., Buchanan, J.B., 2016. Population size and stopover duration estimation using mark–resight data and Bayesian analysis of a superpopulation model. Biometrics 72, 262–271. https://doi.org/10.1111/biom.12393
+
+Naidoo, R., Balmford, A., Ferraro, P., Polasky, S., Ricketts, T., Rouget, M., 2006. Integrating economic costs into conservation planning. Trends in Ecology & Evolution 21, 681–687. https://doi.org/10.1016/j.tree.2006.10.003
+
+Nichols, J.D., Williams, B.K., 2006. Monitoring for conservation. Trends in Ecology & Evolution 21, 668–673. https://doi.org/10.1016/j.tree.2006.08.007
+
+Peel, D., Bravington, M., Kelly, N., Double, M.C., 2015. Designing an effective mark–recapture study of Antarctic blue whales. Ecological Applications 25, 1003–1015. https://doi.org/10.1890/14-1169.1
+
+Reynolds, J.H., Thompson, W.L., Russell, B., 2011. Planning for success: Identifying effective and efficient survey designs for monitoring. Biological Conservation, Ecoregional-scale monitoring within conservation areas, in a rapidly changing climate 144, 1278–1284. https://doi.org/10.1016/j.biocon.2010.12.002
+
+Sims, M., Wanless, S., Harris, M.P., Mitchell, P.I., Elston, D.A., 2006. Evaluating the power of monitoring plot designs for detecting long-term trends in the numbers of common guillemots. Journal of Applied Ecology 43, 537–546. https://doi.org/10.1111/j.1365-2664.2006.01163.x
+
+Sollmann, R., Gardner, B., Belant, J.L., 2012. How Does Spatial Study Design Influence Density Estimates from Spatial Capture-Recapture Models? PLOS ONE 7, e34575. https://doi.org/10.1371/journal.pone.0034575
+
+Sun, C.C., Fuller, A.K., Royle, J.A., 2014. Trap Configuration and Spacing Influences Parameter Estimates in Spatial Capture-Recapture Models. PLOS ONE 9, e88025. https://doi.org/10.1371/journal.pone.0088025
+
+Torrubia, S., McRae, B.H., Lawler, J.J., Hall, S.A., Halabisky, M., Langdon, J., Case, M., 2014. Getting the most connectivity per conservation dollar. Frontiers in Ecology and the Environment 12, 491–497. https://doi.org/10.1890/130136
+
+White, T.B., Petrovan, S.O., Booth, H., Correa, R.J., Gatt, Y., Martin, P.A., Newell, H., Worthington, T.A., Sutherland, W.J., 2022. Determining the economic costs and benefits of conservation actions: A decision support framework. Conservation Science and Practice 4, e12840. https://doi.org/10.1111/csp2.12840
+
+Wilton, C.M., Puckett, E.E., Beringer, J., Gardner, B., Eggert, L.S., Belant, J.L., 2014. Trap Array Configuration Influences Estimates and Precision of Black Bear Density and Abundance. PLOS ONE 9, e111257. https://doi.org/10.1371/journal.pone.0111257
+
+Yackulic, C.B., Korman, J., Yard, M.D., Dzul, M., 2018. Inferring species interactions through joint mark–recapture analysis. Ecology 99, 812–821. https://doi.org/10.1002/ecy.2166
 
 
 ### Appendix  
@@ -1246,28 +1306,13 @@ cri_dot_app
 ```
 Figure S3. Probability of detecting change in survival across all sample sizes and survey features. 
 
-```{r change all facets, fig.height = 7, fig.width = 9}
-
-cri_all_cont_heat
-
-```
-Figure S4. Probability of detecting change in survival across all sample sizes and survey features. 
-
-
-```{r bias app, fig.height = 5, fig.width = 7}
-
-bias_heat
-# bias_dot
-
-```
-Figure S5. Relative bias (%). Heat vs. dot?
+# ```{r change all facets, fig.height = 7, fig.width = 9}
+# 
+# cri_all_cont_heat
+# 
+# ```
+# Figure S4. Probability of detecting change in survival across all sample sizes and survey features. 
 
 
-```{r RMSE app, fig.height = 5, fig.width = 7}
 
-rmse_heat
-# rmse_dot
-
-```
-Figure S6. RMSE. Heat vs. dot? 
 
