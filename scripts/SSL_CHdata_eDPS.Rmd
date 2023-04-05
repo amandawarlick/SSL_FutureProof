@@ -61,6 +61,13 @@ ch_dat <- resights %>%
   reshape2::dcast(AnimalID + t_0 + site_0 + Mass_std + Sex ~ year, value.var = 'age_cat_num', fill = 12) %>%
   arrange(AnimalID)
 
+#cohorts
+co <- resights %>%
+  group_by(t_0, reg_0, site_0) %>%
+  dplyr::summarize(n = n_distinct(AnimalID))
+
+#resight years
+n_distinct(resights$year)
 
 ```
 

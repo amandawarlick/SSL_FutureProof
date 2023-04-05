@@ -14,7 +14,7 @@ plot_theme <- function(...) {
     #panel.border = element_rect(fill = NA), #for square around plot
     panel.grid = element_blank(), 
     legend.key = element_blank(),
-    strip.background = element_blank(), 
+    strip.background = element_rect(fill = "white", color = "black"), 
     strip.text = element_text(size = 10),
     legend.text = element_text(size = 10),
     ...)
