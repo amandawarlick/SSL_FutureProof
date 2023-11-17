@@ -105,7 +105,7 @@ mean.cv <- data.frame(cv) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 mean.cv.thresh <- data.frame(cv) %>%
@@ -117,7 +117,7 @@ mean.cv.thresh <- data.frame(cv) %>%
   dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 #load in results from 20-yr study and merge
@@ -193,7 +193,7 @@ mean.cv.20 <- data.frame(cv.20) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 20) %>%
   bind_rows(mean.cv)
 
@@ -213,7 +213,7 @@ dotplot_dat_up <- cv.20 %>% transform(length = 20) %>%
   bind_rows(cv %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(length, variable, detection, survey_freq, N) %>%
-  dplyr::summarize(upper = quantile(value, probs = 0.975)) %>%
+  dplyr::summarize(upper = quantile(value, probs = 0.975), .groups = 'keep') %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
   #filter out detection params
   filter(!is.na(variable))
@@ -222,7 +222,7 @@ dotplot_dat_low <- cv.20 %>% transform(length = 20) %>%
   bind_rows(cv %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   group_by(length, variable, detection, survey_freq, N) %>%
-  dplyr::summarize(lower = quantile(value, probs = 0.025)) %>%
+  dplyr::summarize(lower = quantile(value, probs = 0.025), .groups = 'keep') %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
   #filter out detection params
   filter(!is.na(variable))
@@ -234,7 +234,7 @@ dotplot_dat <- dotplot_dat_mean %>%
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and cohort size',
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection')
 
 #study horizon
@@ -242,7 +242,23 @@ cv_cont_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = survey_freq, y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
-  xlab('Branding frequency') + ylab('Coefficient of Variation (CV)') +
+  xlab('Marking frequency') + ylab('Coefficient of Variation (CV)') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+#same as above, dif shapes too
+cv_cont_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+       aes(x = survey_freq, y = value, col = factor(variable), 
+           shape = factor(variable), group = variable),
+                  position = position_dodge(width = 2)) +
+  geom_point() + geom_line() +
+  geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
+  xlab('Marking frequency') + ylab('Coefficient of Variation (CV)') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -267,7 +283,7 @@ dotplot_dat <- cv.20 %>% transform(length = 20) %>%
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and cohort size',
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection')
 
 #no quantile error bars on yes/no 
@@ -275,7 +291,7 @@ cv_thresh_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = survey_freq, y = value_cat, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Probability of CV < 0.125') +
+  xlab('Marking frequency') + ylab('Probability of CV < 0.125') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -321,7 +337,7 @@ mean.cv.thresh.20 <- data.frame(cv %>% transform(length = 10)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), 
                                labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size')
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size')
 
 plot_dat <- mean.cv.thresh.20 %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
@@ -417,7 +433,7 @@ effort_cv_dat <- cv_delta_steps %>%
   transform(category = factor(category, levels = c('Baseline', 'Detection only', 
                                  'Frequency only', 'Detection & frequency'),
                               labels = c('Baseline', 'Detection only', 
-                                 'Branding frequency only', 'Detection & branding frequency'))) %>%
+                                 'Marking frequency only', 'Detection & marking frequency'))) %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High')))
 
 #probability of detecting change.... 
@@ -431,14 +447,14 @@ effort_cv_dot <- ggplot(effort_cv_dat %>% filter(!is.na(step)) %>%
   geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(variable~samp_size+length+N) +
-  xlab('Survey effort (detection + branding frequency)') + 
+  xlab('Survey effort (detection + marking frequency)') + 
   ylab('Probability of CV < 0.125') +
   theme_bw() +
   theme(legend.position = 'top',
         strip.background = element_rect(fill = "white", color = "black"),
-        legend.text = element_text(size = 10, vjust = 0.5),
-        axis.title.x = element_text(vjust = -1),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
+        legend.text = element_text(size = 10, vjust = 0.5, family = 'Sans'),
+        axis.title.x = element_text(vjust = -1, family = 'Sans'),
+        legend.title = element_text(vjust = 0.8, size = 10, family = 'Sans')) +
     scale_color_manual(values = rainbow2[-c(1,4,6)], name = '')
 
 ```
@@ -494,7 +510,7 @@ mean.cri <- data.frame(cri.all) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') 
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size') 
 
 #load in results from 20-yr
 cri.all.20 <- data.frame()
@@ -557,7 +573,7 @@ dotplot_dat <- cri.all.20 %>% filter(length == 20) %>%
                                labels = c('Low', 'Medium', 'High'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and cohort size',
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection') %>%
   #filter out detection params
   filter(!is.na(variable))
@@ -567,7 +583,7 @@ cri_dot_big <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Probability of detecting larger difference in survival') +
+  xlab('Marking frequency') + ylab('Probability of detecting larger difference in survival') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -581,7 +597,7 @@ cri_dot_small <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Probability of detecting small difference in survival') +
+  xlab('Marking frequency') + ylab('Probability of detecting small difference in survival') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -603,7 +619,7 @@ plot_dat <- mean.cri.20 %>% filter(grepl('phi', variable)) %>%
                                labels = c('Small difference', 'Large difference'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
                                labels = c('Low', 'Medium', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & change size', 
+  transform(survey_frequency = 'Marking frequency & change size', 
             samp_size = 'Sample size & study length')
 
 #all facets continuous
@@ -649,7 +665,7 @@ cri_all_cat_heat <- ggplot(plot_dat %>% filter(length %in% c(10,20)),
   transform(value_cat = factor(value_cat, levels = c('<0.5', '0.5-0.8', '>0.8'))) %>%
   transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big'),
                                labels = c('Small difference', 'Large difference'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size')
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size')
  
 #big decrease in survival 
 cri_big_heat <- ggplot(plot_dat %>% filter(threshold %in% c('Large difference')), 
@@ -698,7 +714,7 @@ dotplot_dat <- cri.all.20 %>%
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
   transform(threshold = factor(threshold, levels = c('dec_little', 'dec_big'),
                                labels = c('Small difference', 'Large difference'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and cohort size',
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection and threshold') %>%
   #filter out detection params
   filter(!is.na(variable))
@@ -707,7 +723,7 @@ cri_dot_app <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Probability of detecting difference in survival') +
+  xlab('Marking frequency') + ylab('Probability of detecting difference in survival') +
   facet_nested(det + detection + threshold ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -794,7 +810,7 @@ effort_dat <- cri_delta_steps %>%
   transform(category = factor(category, levels = c('Baseline', 'Detection only', 
                                  'Frequency only', 'Detection & frequency'),
                               labels = c('Baseline', 'Detection only', 
-                                 'Branding frequency only', 'Detection & branding frequency'))) %>%
+                                 'Marking frequency only', 'Detection & marking frequency'))) %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High')))
 
 #probability of detecting change.... 
@@ -806,7 +822,7 @@ effort_dot <- ggplot(effort_dat %>% filter(!is.na(step)) %>% filter(variable == 
   geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(threshold_name~samp_size+length+N) +
-  xlab('Survey effort (detection + branding frequency)') + 
+  xlab('Survey effort (detection + marking frequency)') + 
   ylab('Probability of detecting difference in pup survival') +
   theme_bw() +
   theme(legend.position = 'top',
@@ -826,7 +842,7 @@ text_dat <- cri_delta_steps %>%
    transform(category = factor(category, levels = c('Baseline', 'Detection only', 
                                  'Frequency only', 'Detection & frequency'),
                               labels = c('Baseline', 'Detection only', 
-                                 'Branding frequency only', 'Detection & branding frequency'))) %>%
+                                 'Marking frequency only', 'Detection & marking frequency'))) %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High'))) %>%
   transform(det_cat = factor(det_cat, labels = c('Low', 'Medium', 'High')),
             survey_cat = factor(survey_cat, labels = c('Triennial', 'Biennial', 'Annual')))
@@ -840,7 +856,7 @@ effort_grid <- ggplot(text_dat %>% filter(category != 'Baseline'), aes(det_cat, 
   # geom_text(data = text_dat %>% filter(category == 'Baseline'),
   #           aes(label = step), show.legend = F) +
   annotate('text', x = 1, y = 1, label = 'Low', fontface = 'bold') +
-  ylab('Branding frequency') + xlab('Detection') +
+  ylab('Marking frequency') + xlab('Detection') +
   theme_bw() +
   theme(legend.position = 'top',
         legend.key.size = unit(0.35, "cm"),
@@ -861,7 +877,7 @@ effort_dot_app <- ggplot(effort_dat %>% filter(!is.na(step)) %>%
   geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(threshold_name+variable~samp_size+length+N) +
-  xlab('Survey effort (detection + branding frequency)') + 
+  xlab('Survey effort (detection + marking frequency)') + 
   ylab('Probability of detecting difference in survival') +
   theme_bw() +
   theme(legend.position = 'top',
@@ -909,7 +925,7 @@ mean.rel.bias <- data.frame(rel.bias) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', samp_size = 'Sample size') %>%
+  transform(survey_frequency = 'Marking frequency & study length', samp_size = 'Sample size') %>%
   transform(length = 10)
 
 
@@ -963,7 +979,7 @@ plot_dat <- mean.rel.bias.20 %>% filter(grepl('phi', variable)) %>%
 bias_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
        aes(x = survey_freq, y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Branding frequency') + ylab('Parameter') +
+  xlab('Marking frequency') + ylab('Parameter') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T, 
              labeller = labeller(length = occ_labels),
              scales = 'free_x') +
@@ -1014,7 +1030,7 @@ bias_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
   geom_point() + geom_line() +
   # geom_errorbar(aes(ymin = lower, ymax = upper)) +
   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
-  xlab('Branding frequency') + ylab('Mean relative bias (%)') +
+  xlab('Marking frequency') + ylab('Mean relative bias (%)') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
@@ -1063,7 +1079,7 @@ mean.rmse <- data.frame(rmse) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Branding frequency & study length', 
+  transform(survey_frequency = 'Marking frequency & study length', 
             samp_size = 'Sample size') %>%
   transform(length = 10) 
 
@@ -1104,7 +1120,7 @@ mean.rmse.20 <- data.frame(rmse.20) %>%
   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(length = 20) %>%
   bind_rows(mean.rmse) %>%
-  transform(survey_frequency = 'Branding frequency & study length', 
+  transform(survey_frequency = 'Marking frequency & study length', 
             samp_size = 'Study horizon and cohort size', det = 'Detection') %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial')))
@@ -1118,7 +1134,7 @@ plot_dat <- mean.rmse.20 %>% filter(grepl('phi', variable)) %>%
 rmse_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
                     aes(x = survey_freq, y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
-  xlab('Branding frequency') +
+  xlab('Marking frequency') +
   ylab('Parameter') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T, 
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
@@ -1148,7 +1164,7 @@ dotplot_dat <- rmse.20 %>% transform(length = 20) %>%
                                labels = c('Low', 'Medium', 'High'))) %>%
   transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
                                  labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(survey_frequency = 'Branding frequency', samp_size = 'Study horizon and cohort size',
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection') %>%
   #filter out detection params
   filter(!is.na(variable))
@@ -1156,7 +1172,7 @@ dotplot_dat <- rmse.20 %>% transform(length = 20) %>%
 rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
-  xlab('Branding frequency') + ylab('RMSE') +
+  xlab('Marking frequency') + ylab('RMSE') +
   facet_nested(det + detection ~ samp_size + length + N, drop = T,
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
