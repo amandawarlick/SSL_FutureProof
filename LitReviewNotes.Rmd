@@ -143,7 +143,7 @@ Kristensen & Kovach 2018
 - Need good abundance estimates to measure response to management actions (Nichols & Williams 06; Johnston et al. 2015)
 - CV and relative bias; number of survey occasions, pellet collection spacing, true density, transect spacing all important predictors; number of survey occasions less impactful?
 - "When detectability was low (g0 = 0.1), both additional detectors and more frequent sampling were required to achieve the desired levels of precision than with higher detectability (g0 = 0.2)"
-- *Pollock et al 1990* recommends CV < 0.2? 
+- Pollock et al 1990 recommends CV < 0.2? 
 - Also found that true density had large effect on performance, had to compensate for low density by upping observation metrics
 - Nice examples of when management goals affect needed precision: tracking fate of reintroduction (maybe need to ensure less bias and higher precision) compared to responses to habitat management (number alive with low precision acceptable?)
 
@@ -156,6 +156,6 @@ Freeman et al. 2021
 
 White et al. 2022
 - Decision support framework for assessing costs and benefits of conservation actions
-- *Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied*
+- Need for incorporating costs, but difficult to estimate and poorly/infrequently reported and therefore rarely studied
 - Mainly a how-to
 

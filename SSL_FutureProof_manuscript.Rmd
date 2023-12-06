@@ -314,13 +314,15 @@ cv_heat_cont <- ggplot(plot_dat, aes(x = factor(detection), y = variable, fill =
   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
- scale_fill_gradient2(name = "cv",
+ scale_fill_gradient2(name = "CV",
                       mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
   theme_bw() +
   theme(legend.position = 'right',
-             strip.background = element_rect(fill = "white", color = "black"),
+        strip.background = element_rect(fill = "white", color = "black"),
         legend.text = element_text(size = 10, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
+        legend.title = element_text(vjust = 0.8, size = 11),
+        axis.text = element_text(size = 11),
+        strip.text = element_text(size = 11)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 ##threshold
@@ -349,13 +351,15 @@ cv_thresh_heat <- ggplot(plot_dat, aes(x = factor(detection), y = variable, fill
   facet_nested(samp_size + N ~ survey_frequency + survey_freq + length, drop = T, 
              labeller = labeller(survey_freq = freq_labels, length = occ_labels),
              scales = 'free_x') +
-scale_fill_gradient2(name = "Probability of \n cv < 0.125",
+scale_fill_gradient2(name = "Probability of \n CV < 0.125",
                   mid = "#FFFFFF", high = "deepskyblue1", low = "red2", midpoint = 0.8) +
   theme_bw() +
   theme(legend.position = 'right',
-             strip.background = element_rect(fill = "white", color = "black"),
+        strip.background = element_rect(fill = "white", color = "black"),
         legend.text = element_text(size = 10, vjust = 0.5),
-        legend.title = element_text(vjust = 0.8, size = 10)) +
+        legend.title = element_text(vjust = 0.8, size = 11),
+        axis.text = element_text(size = 11),
+        strip.text = element_text(size = 11)) +
     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
 
 
@@ -452,9 +456,10 @@ effort_cv_dot <- ggplot(effort_cv_dat %>% filter(!is.na(step)) %>%
   theme_bw() +
   theme(legend.position = 'top',
         strip.background = element_rect(fill = "white", color = "black"),
-        legend.text = element_text(size = 10, vjust = 0.5, family = 'Sans'),
-        axis.title.x = element_text(vjust = -1, family = 'Sans'),
-        legend.title = element_text(vjust = 0.8, size = 10, family = 'Sans')) +
+        strip.text = element_text(size = 11),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        legend.title = element_text(vjust = 0.8, size = 11)) +
     scale_color_manual(values = rainbow2[-c(1,4,6)], name = '')
 
 ```
