@@ -195,7 +195,7 @@ v_thresh <- 'small_decrease'
 
 n.states <- 12
 n.obs <- 12
-n.occasions <- 11 #10 years of resighting
+n.occasions <- 11 #10 years of resighting; or <- 20 for 19 yrs of resighting (longer study)
 
 #define survival rates
 phi.pars.names <- c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA')
