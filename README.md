@@ -53,5 +53,7 @@ Warlick, AJ, Fadely, BS, Mahoney, P, Melin, SR, Gelatt, T, Raum-Suryan, K, Conve
 
 #### How to Use this Repository 
 
-The SSL_FutureProof_simpleAge_sim.Rmd file pulls in 
+The SSL_FutureProof_sim.Rmd file includes code chunks that outline functions used to designate initial values and known latent state information, nimble functions used to fit the model, model text, transition matrices and descriptions of the model parameters and simulation scenarios, and code used to run the model in parallel using nimble. Simulations were saved in batches due to computing resources. 
+
+Contact the first author for (1) data processing and mark-resight model code used to produce empirical estimates (that guided data generation for the simulation); and (2) code used to generate figures and summary statistics found in the manuscript. 
 

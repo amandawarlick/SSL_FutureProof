@@ -42,6 +42,42 @@ scenarios <- data.frame(scenario = c(sc),
                                             'High', 'High', 'High', 'High', 'High'), 3)),
                         N = c(rep(c(50,75,100,150,200), 9)))
 
+med.files <- list.files(path = here::here('results', 'simpleAge', 'sims'), 
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+
+converged <- data.frame()
+for (f in 1:length(med.files)) {
+
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'simpleAge','sims', 
+                                                     med.files[f]))[,'max_rhat']) %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(batch = str_sub(med.files[f], -6,-5)) %>%
+  transform(rhat = as.numeric(rhat))
+
+converged <- rbind(converged, rhats)
+
+}
+
+tot_runs <- converged %>%
+  filter(!is.na(rhat)) %>%
+  group_by(scenario, batch) %>%
+  dplyr::summarize(tot = n())
+
+prop_conv <- converged %>%
+  filter(rhat<1.10) %>%
+  group_by(scenario) %>%
+  dplyr::summarize(conv = n()) %>%
+  merge(tot_runs, by = 'scenario', all = T) %>%
+  transform(prop_conv = round(conv/tot,2)) %>%
+  dplyr::select(scenario, tot, prop_conv)
+
+scenarios_tab <- scenarios %>%
+  merge(prop_conv, by = 'scenario') %>%
+  transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+                                 labels = c('Annual', 'Biennial', 'Triennial')))
+
+# kable(scenarios_tab)
 
 #for figure legends
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
