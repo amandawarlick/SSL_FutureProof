@@ -1,0 +1,1177 @@
+---
+title: ""
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE, message = F, warning = F, fig.align = 'center')
+
+library(here) #v1.0.1
+library(dplyr) #v1.0.5
+library(nimble) #v0.12.1
+library(coda)
+library(ggh4x)
+library(knitr)
+library(readr)
+library(stringi)
+library(stringr)
+library(logitnorm)
+
+source(here::here('scripts', 'PlotTheme.R'))
+
+eDPS_dat <- readRDS(here::here('results', 'simpleAge', 'out_ME.RDS'))
+
+posts <- eDPS_dat[,c('mu.P', 'mu.1', 'mu.2', 'mu.J', 'mu.A',
+                     'int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA',
+                      'sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA')]
+outmat <- as.matrix(posts)
+
+eDPS_ests <- data.frame(
+  med = apply(outmat, 2, function(x) quantile(x, probs = 0.5, na.rm = T, names = F)),
+  lower = apply(outmat, 2, function(x) quantile(x, probs = 0.025, na.rm = T, names = F)),
+  upper = apply(outmat, 2, function(x) quantile(x, probs = 0.975, na.rm = T, names = F)))
+eDPS_ests$variable <- row.names(eDPS_ests)
+
+
+
+```
+
+```{r functions}
+
+# Define function to simulate multistate capture-recapture data
+simul.ms <- function(STATE, OBS, marked, unobservable = NA){
+   # Unobservable: number of state that is unobservable
+   n.occasions <- dim(STATE)[4] + 1
+   CH <- CH.TRUE <- matrix(NA, ncol = n.occasions, nrow = sum(marked))
+   # Define a vector with the occasion of marking
+   mark.occ <- matrix(0, ncol = dim(STATE)[1], nrow = sum(marked))
+   g <- colSums(marked)
+   for (s in 1:dim(STATE)[1]){
+   # for (s in 1:1){
+      if (g[s]==0) next  # individuals only released as pups, state 1, skip others
+      mark.occ[(cumsum(g[1:s])-g[s]+1)[s]:cumsum(g[1:s])[s],s] <-
+      rep(1:n.occasions, marked[1:n.occasions,s])
+      } #s
+   #first occasion
+   for (i in 1:sum(marked)){
+      for (s in 1:dim(STATE)[1]){
+         if (mark.occ[i,s]==0) next
+         first <- mark.occ[i,s]
+         CH[i,first] <- s
+         CH.TRUE[i,first] <- s
+         } #s
+      #subsequent occasions
+      for (t in (first+1):n.occasions){
+         # Multinomial trials for state transitions
+         if (first==n.occasions) next
+         state <- which(rmultinom(1, 1, STATE[CH.TRUE[i,t-1],,i,t-1])==1)
+         CH.TRUE[i,t] <- state
+         # Multinomial trials for observation process
+         event <- which(rmultinom(1, 1, OBS[CH.TRUE[i,t],,i,t-1])==1)
+         CH[i,t] <- event
+         } #t
+      } #i
+   # Replace the NA and the highest state number (dead) in the file by 0
+   CH[is.na(CH)] <- 0
+   CH[CH==dim(STATE)[1]] <- 0
+   CH[CH==unobservable] <- 0
+   id <- numeric(0)
+   for (i in 1:dim(CH)[1]){
+      z <- min(which(CH[i,]!=0))
+      ifelse(z==dim(CH)[2], id <- c(id,i), id <- c(id))
+      }
+   return(list(CH=CH[-id,], CH.TRUE=CH.TRUE[-id,]))
+   # CH: capture histories to be used
+   # CH.TRUE: capture histories with perfect observation
+   }
+
+# Function to create known latent states z
+known.state.ms <- function(ms, notseen){
+   # notseen: label for not seen
+   state <- ms
+   state[state==notseen] <- NA
+   for (i in 1:dim(ms)[1]){
+      m <- min(which(!is.na(state[i,])))
+      state[i,m] <- NA
+      }
+   return(state)
+   }
+
+# Function to create initial values for unknown z
+cjs.init <- function(ch, f){
+  inits <- ch    #initialize with observations up until states diverge from observations (4yr olds)
+  for(i in 1:dim(ch)[1]) {
+    # for(i in 1:10) { 
+    inits[i,f[i]] <- NA #pups at release
+      if(n.occasions-f[i]>=1){   
+        inits[i,(f[i] + 1)] <- 2} #1 yr old
+      if(n.occasions-f[i]>=2){
+        inits[i,(f[i] + 2)] <- 3}  #2 yr old
+      if(n.occasions-f[i]>=3){
+        inits[i,(f[i] + 3)] <- 4} #3 yr old
+    if(n.occasions-f[i]>=4){
+        inits[i,(f[i] + 4)] <- 5}
+    if(n.occasions-f[i]>=5){
+        inits[i,(f[i] + 5)] <- 6}
+    if(n.occasions-f[i]>=6){
+        inits[i,(f[i] + 6)] <- 7}
+    if(n.occasions-f[i]>=7){
+        inits[i,(f[i] + 7)] <- 8}
+    if(n.occasions-f[i]>=8){
+        inits[i,(f[i] + 8)] <- 9}
+    if(n.occasions-f[i]>=9){
+        inits[i,(f[i] + 9)] <- 10}
+      if(n.occasions-f[i]>=10) {
+        inits[i,((f[i] + 10):n.occasions)] <- 11} #all 10yrs+ are A
+  } #i
+  return(inits)
+}
+
+#for the model
+getPHI <- nimbleFunction(
+  run = function(z=double(0), phiP=double(0), phi1=double(0), phi2=double(0), phi3=double(0), phi4=double(0),
+                 phi5=double(0), phi6=double(0), phi7=double(0), phi8=double(0), 
+                 phi9=double(0), phiA=double(0)) {
+   returnType(double(1))
+   ans <- rep(0,12)
+     if(z==1)   ans <- c(0,phiP,0,0,0,0,0,0,0,0,0,1-phiP)  #pup
+     if(z==2)   ans <- c(0,0,phi1,0,0,0,0,0,0,0,0,1-phi1)  #yearling   
+     if(z==3)   ans <- c(0,0,0,phi2,0,0,0,0,0,0,0,1-phi2)  #2yr
+     if(z==4)   ans <- c(0,0,0,0,phi3,0,0,0,0,0,0,1-phi3)  #3yr 
+     if(z==5)   ans <- c(0,0,0,0,0,phi4,0,0,0,0,0,1-phi4)  #4yr
+     if(z==6)   ans <- c(0,0,0,0,0,0,phi5,0,0,0,0,1-phi5)  #5yr           
+     if(z==7)   ans <- c(0,0,0,0,0,0,0,phi6,0,0,0,1-phi6)  #6yr 
+     if(z==8)   ans <- c(0,0,0,0,0,0,0,0,phi7,0,0,1-phi7)       
+     if(z==9)   ans <- c(0,0,0,0,0,0,0,0,0,phi8,0,1-phi8)       
+     if(z==10)  ans <- c(0,0,0,0,0,0,0,0,0,0,phi9,1-phi9)   
+     if(z==11)  ans <- c(0,0,0,0,0,0,0,0,0,0,phiA,1-phiA)       
+     if(z==12)  ans <- c(0,0,0,0,0,0,0,0,0,0,0,1) #D
+
+   return(ans)
+ }
+)
+
+#observations 
+getP <- nimbleFunction(
+  run = function(z=double(0), p1=double(0), p2=double(0), pJ=double(0), pA=double(0)) {
+   returnType(double(1))
+   ans <- rep(0,12)
+     if(z==1)   ans <- c(1,0,0,0,0,0,0,0,0,0,0,0) #pups seen as pups
+     if(z==2)   ans <- c(0,p1,0,0,0,0,0,0,0,0,0,1-p1)   #1yr      
+     if(z==3)   ans <- c(0,0,p2,0,0,0,0,0,0,0,0,1-p2)   #2yr
+     if(z==4)   ans <- c(0,0,0,pJ,0,0,0,0,0,0,0,1-pJ)   #3yr
+     if(z==5)   ans <- c(0,0,0,0,pJ,0,0,0,0,0,0,1-pJ)   #4yr 
+     if(z==6)   ans <- c(0,0,0,0,0,pA,0,0,0,0,0,1-pJ)   #5yr           
+     if(z==7)   ans <- c(0,0,0,0,0,0,pA,0,0,0,0,1-pJ)   #6yr  
+     if(z==8)   ans <- c(0,0,0,0,0,0,0,pA,0,0,0,1-pA)   #7yr  
+     if(z==9)   ans <- c(0,0,0,0,0,0,0,0,pA,0,0,1-pA)   #8yr  
+     if(z==10)  ans <- c(0,0,0,0,0,0,0,0,0,pA,0,1-pA)   #9yr  
+     if(z==11)  ans <- c(0,0,0,0,0,0,0,0,0,0,pA,1-pA)   #pA
+     if(z==12)  ans <- c(0,0,0,0,0,0,0,0,0,0,0,1)       #nd
+
+   return(ans)
+ }
+)
+
+
+```
+
+
+```{r scenarios and parameters}
+
+scenario <- 4 #1-4
+nsim <- 50
+
+# thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
+thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
+
+#batch 
+# batch <- 1  
+# thresh <- thresh_small
+# v_thresh <- 'small_decrease'
+
+batch <- 2 
+thresh <- thresh_big
+v_thresh <- 'big_decrease'
+
+n.states <- 12
+n.obs <- 12
+n.occasions <- 20 #19 years of resighting
+
+#define rates
+#survival
+phi.pars.names <- c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA')
+
+phi.pars <- c(0.55, 0.7, 0.8, 0.88, 0.92) #generally from wDPS mean
+
+phi.sim <- c(phi.pars[1]-phi.pars[1]*thresh[1],
+             phi.pars[2]-phi.pars[2]*thresh[2],
+             phi.pars[3]-phi.pars[3]*thresh[3],
+             phi.pars[4]-phi.pars[4]*thresh[4],
+             phi.pars[5]-phi.pars[5]*thresh[5])
+
+#detection
+p.pars.names <- c('p1', 'p2', 'pJ', 'pA')
+p.pars <- c(0.6, 0.6, 0.7, 0.8)
+
+#survey features
+#number of marked individuals at each release
+n.brand <- 50 
+
+#biennial for 10 yrs
+pars.1 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              0, 0, 0, 0, 0, 0, 0, 0, 0, 1))
+
+#biennial for 10 yrs, 2 cohorts in next 10 yrs
+pars.2 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              0, 0, 0, 50, 0, 0, 50, 0, 0, 1))
+
+#biennial for 10 yrs, 3 cohorts in next 10 yrs
+pars.3 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              0, 50, 0, 0, 50, 0, 0, 50, 0, 1))
+
+#biennial for 20 yrs
+pars.4 <- c(p.pars, n.brand, c(rep(c(n.brand,0), (n.occasions/2)-1), n.brand, 1))
+
+
+#marked matrix
+marked <- matrix(0, ncol = n.states, nrow = n.occasions)
+marked[,1] <- eval(parse(text = paste0('pars.', scenario)))[6:(n.occasions+5)] 
+
+#storage
+n_params <- length(c(phi.pars, p.pars))
+out_median <- matrix(NA, nsim, n_params+2+5) #rhat storage + 5 sigmas
+out_true <- matrix(NA, nsim, n_params) 
+bias <- rmse <- matrix(NA, nsim, n_params) 
+
+cv <- detect15 <- detect20 <- matrix(NA, nsim, length(phi.pars)) 
+
+pars <- eval(parse(text = paste0('pars.', scenario)))
+
+
+```
+
+
+```{r simulate and run 20 yr}
+
+for (s in 1:nsim) {
+
+#decreasing scenarios
+phi.pars.t <- data.frame(phiP = rlogitnorm(n.occasions-1, qlogis(phi.sim[1]), 
+                                           eDPS_ests['sigmaP', 'med']),
+                         phi1 = rlogitnorm(n.occasions-1, qlogis(phi.sim[2]), 
+                                           eDPS_ests['sigma1', 'med']),
+                         phi2 = rlogitnorm(n.occasions-1, qlogis(phi.sim[3]), 
+                                           eDPS_ests['sigma2', 'med']),
+                         phiJ = rlogitnorm(n.occasions-1, qlogis(phi.sim[4]), 
+                                           eDPS_ests['sigmaJ', 'med']),
+                         phiA = rlogitnorm(n.occasions-1, qlogis(phi.sim[5]), 
+                                           eDPS_ests['sigmaA', 'med']))
+
+
+# 1. State process matrix
+totrel <- sum(marked)*(n.occasions-1)
+STATE <- array(NA, dim=c(n.states, n.states, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      STATE[,,i,t] <- matrix(c(
+      0,phi.pars.t[t,1],0,0,0,0,0,0,0,0,0,1-phi.pars.t[t,1], #pup
+      0,0,phi.pars.t[t,2],0,0,0,0,0,0,0,0,1-phi.pars.t[t,2], #1
+      0,0,0,phi.pars.t[t,3],0,0,0,0,0,0,0,1-phi.pars.t[t,3], #2
+      0,0,0,0,phi.pars.t[t,4],0,0,0,0,0,0,1-phi.pars.t[t,4], #3
+      0,0,0,0,0,phi.pars.t[t,4],0,0,0,0,0,1-phi.pars.t[t,4], #4
+      0,0,0,0,0,0,phi.pars.t[t,5],0,0,0,0,1-phi.pars.t[t,5], #5
+      0,0,0,0,0,0,0,phi.pars.t[t,5],0,0,0,1-phi.pars.t[t,5], #6
+      0,0,0,0,0,0,0,0,phi.pars.t[t,5],0,0,1-phi.pars.t[t,5], #7
+      0,0,0,0,0,0,0,0,0,phi.pars.t[t,5],0,1-phi.pars.t[t,5], #8
+      0,0,0,0,0,0,0,0,0,0,phi.pars.t[t,5],1-phi.pars.t[t,5], #9
+      0,0,0,0,0,0,0,0,0,0,phi.pars.t[t,5],1-phi.pars.t[t,5], #plus
+      0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# 2.Observation process matrix
+OBS <- array(NA, dim=c(n.states, n.obs, totrel, n.occasions-1))
+for (i in 1:totrel){
+   for (t in 1:(n.occasions-1)){
+      OBS[,,i,t] <- matrix(c(
+     1,0,0,0,0,0,0,0,0,0,0,0,
+     0,pars[1],0,0,0,0,0,0,0,0,0,1-pars[1],   #1yr      
+     0,0,pars[2],0,0,0,0,0,0,0,0,1-pars[2],   #2yr
+     0,0,0,pars[3],0,0,0,0,0,0,0,1-pars[3],   #3yr
+     0,0,0,0,pars[3],0,0,0,0,0,0,1-pars[3],   #4yr 
+     0,0,0,0,0,pars[4],0,0,0,0,0,1-pars[4],   #5yr           
+     0,0,0,0,0,0,pars[4],0,0,0,0,1-pars[4],   #6yr  
+     0,0,0,0,0,0,0,pars[4],0,0,0,1-pars[4],   #7yr  
+     0,0,0,0,0,0,0,0,pars[4],0,0,1-pars[4],   #8yr  
+     0,0,0,0,0,0,0,0,0,pars[4],0,1-pars[4],   #9yr  
+     0,0,0,0,0,0,0,0,0,0,pars[4],1-pars[4],   #pA
+     0,0,0,0,0,0,0,0,0,0,0,1), nrow = n.states, byrow = TRUE)
+      } #t
+   } #i
+
+# Execute simulation function
+sim <- simul.ms(STATE, OBS, marked)
+CH <- sim$CH
+CH.TRUE <- sim$CH.TRUE
+
+# Compute vector with occasion of first capture
+get.first <- function(x) min(which(x!=0))
+f <- apply(CH, 1, get.first)
+
+# Recode CH matrix: note, a 0 is not allowed; 12 = not seen
+rCH <- CH          # Recoded CH
+rCH[rCH==0] <- 12
+
+z.init <- as.matrix(cjs.init(rCH, f))
+# z.st <- known.state.ms(rCH, 12)
+
+#model text
+SSL_CJS <- nimbleCode({
+
+# Priors and constraints
+  for (i in 1:n_ind) { 
+    for (t in 1:(n.occasions - 1)) {
+      logit(phiP[i,t]) <- mu.P + epsP[t]
+      logit(p1[i,t]) <- mu.p1 
+    } #t 
+    
+    for (t in 2:(n.occasions-1)) {
+      logit(phi1[i,t]) <- mu.1 + eps1[t]
+      logit(p2[i,t]) <- mu.p2  
+    }
+    
+    for (t in 3:(n.occasions-1)) {
+      logit(phi2[i,t]) <- mu.2 + eps2[t]
+      logit(pJ[i,t]) <- mu.pJ 
+    }
+    
+    for (t in 4:(n.occasions-1)) { 
+      logit(phi3[i,t]) <- mu.J + epsJ[t]
+    } #t psi
+    
+    for (t in 5:(n.occasions-1)) {
+      logit(phi4[i,t]) <- mu.J + epsJ[t]
+      logit(pA[i,t]) <- mu.pA 
+    } #t 
+    
+    for (t in 6:(n.occasions-1)) {  
+      logit(phi5[i,t]) <- mu.A + epsA[t]
+    } #t 
+    
+    for (t in 7:(n.occasions-1)) {  
+      logit(phi6[i,t]) <- mu.A + epsA[t]
+    } #t 
+    
+    for (t in 8:(n.occasions-1)) {  
+      logit(phi7[i,t]) <- mu.A + epsA[t]
+    } #t 
+    
+    for (t in 9:(n.occasions-1)) {  
+      logit(phi8[i,t]) <- mu.A + epsA[t]
+    } #t 
+    
+    for (t in 10:(n.occasions-1)) {  
+      logit(phi9[i,t]) <- mu.A + epsA[t]
+      # logit(phiA[i,t]) <- mu.A + epsA[t]
+    } #t 
+    
+    for (t in 11:(n.occasions-1)) {
+      logit(phiA[i,t]) <- mu.A + epsA[t]
+    } #t
+    
+  } #ind
+
+    
+### Priors
+  
+   for (t in 1:(n.occasions - 1)) {
+      epsP[t] ~ dnorm(0, sd = sigmaP)
+    } #t 
+    
+    for (t in 2:(n.occasions-1)) {
+      eps1[t] ~ dnorm(0, sd = sigma1)
+    }
+    
+    for (t in 3:(n.occasions-1)) {
+      eps2[t] ~ dnorm(0, sd = sigma2)
+    }
+    
+    for (t in 4:(n.occasions-1)) { 
+      epsJ[t] ~ dnorm(0, sd = sigmaJ)
+    } #t 
+  
+    for (t in 6:(n.occasions-1)) {  
+      epsA[t] ~ dnorm(0, sd = sigmaA)
+    } #t 
+  
+    sigmaP ~ dexp(1)
+    sigma1 ~ dexp(1)
+    sigma2 ~ dexp(1)
+    sigmaJ ~ dexp(1)
+    sigmaA ~ dexp(1)
+  
+    #p
+    mu.p1 <- log(int.p1/(1 - int.p1))
+    mu.p2 <- log(int.p2/(1 - int.p2))
+    mu.pJ <- log(int.pJ/(1 - int.pJ))
+    mu.pA <- log(int.pA/(1 - int.pA))
+
+    int.p1 ~ dunif(0,1)
+    int.p2 ~ dunif(0,1)
+    int.pJ ~ dunif(0,1)
+    int.pA ~ dunif(0,1)
+
+    mu.P <- log(int.phiP/(1 - int.phiP))
+    mu.1 <- log(int.phi1/(1 - int.phi1))
+    mu.2 <- log(int.phi2/(1 - int.phi2))
+    mu.J <- log(int.phiJ/(1 - int.phiJ))
+    mu.A <- log(int.phiA/(1 - int.phiA))
+    
+    int.phiP ~ dunif(0,1)
+    int.phi1 ~ dunif(0,1)
+    int.phi2 ~ dunif(0,1)
+    int.phiJ ~ dunif(0,1)
+    int.phiA ~ dunif(0,1)
+    
+    #for calculating cv
+    mean.phiP <- mean(phiP[1:n_ind,1:(n.occasions-1)])
+    mean.phi1 <- mean(phi1[1:n_ind,2:(n.occasions-1)])
+    mean.phi2 <- mean(phi2[1:n_ind,3:(n.occasions-1)])
+    mean.phi3 <- mean(phi3[1:n_ind,4:(n.occasions-1)])
+    mean.phi4 <- mean(phi4[1:n_ind,5:(n.occasions-1)])
+    mean.phi5 <- mean(phi5[1:n_ind,6:(n.occasions-1)])
+    mean.phi6 <- mean(phi6[1:n_ind,7:(n.occasions-1)])
+    mean.phi7 <- mean(phi7[1:n_ind,8:(n.occasions-1)])
+    mean.phi8 <- mean(phi8[1:n_ind,9:(n.occasions-1)])
+    mean.phi9 <- mean(phi9[1:n_ind,10:(n.occasions-1)])
+    mean.phiA.temp <- mean(phiA[1:n_ind,11:(n.occasions-1)])
+
+    mean.phiJ <- mean(c(phi3[1:n_ind,4:(n.occasions-1)], 
+                        phi4[1:n_ind,5:(n.occasions-1)]))
+    mean.phiA <- mean(c(phi5[1:n_ind,6:(n.occasions-1)], 
+                        phi6[1:n_ind,7:(n.occasions-1)], 
+                        phi7[1:n_ind,8:(n.occasions-1)], 
+                        phi8[1:n_ind,9:(n.occasions-1)], 
+                        phi9[1:n_ind,10:(n.occasions-1)], 
+                        phiA[1:n_ind,11:(n.occasions-1)]))
+
+    #mean phi at 5 yrs
+    mean.phiP.15 <- mean(phiP[1:n_ind,1:(n.occasions-6)])
+    mean.phi1.15 <- mean(phi1[1:n_ind,2:(n.occasions-6)])
+    mean.phi2.15 <- mean(phi2[1:n_ind,3:(n.occasions-6)])
+
+    mean.phiJ.15 <- mean(c(phi3[1:n_ind,4:(n.occasions-6)], 
+                        phi4[1:n_ind,5:(n.occasions-6)]))
+    mean.phiA.15 <- mean(c(phi5[1:n_ind,6:(n.occasions-6)], 
+                           phi6[1:n_ind,7:(n.occasions-6)], 
+                           phi7[1:n_ind,8:(n.occasions-6)], 
+                           phi8[1:n_ind,9:(n.occasions-6)], 
+                           phi9[1:n_ind,10:(n.occasions-6)], 
+                           phiA[1:n_ind,11:(n.occasions-6)]))
+    
+
+    #likelihood
+for (i in 1:n_ind) { #females
+    z[i, f[i]:f[i]] <- 1 #pups at first capture
+
+for (t in (f[i] + 1):n.occasions) {
+      z[i,t] ~ dcat(state_probs[i,t-1,1:12])
+      y[i,t] ~ dcat(event_probs[i,t,1:12])
+      
+    state_probs[i,t-1,1:12] <- getPHI(z = z[i,t-1], 
+                                      phiP = phiP[i,t-1], phi1 = phi1[i,t-1], phi2 = phi2[i,t-1], 
+                                      phi3 = phi3[i,t-1], phi4 = phi4[i,t-1], phi5 = phi5[i,t-1], 
+                                      phi6 = phi6[i,t-1], phi7 = phi7[i,t-1], phi8 = phi8[i,t-1],
+                                      phi9 = phi9[i,t-1], phiA = phiA[i,t-1])
+    
+    event_probs[i,t,1:12] <- getP(z = z[i,t], 
+                                    p1 = p1[i,t-1], p2 = p2[i,t-1], pJ = pJ[i,t-1], pA = pA[i,t-1])
+    } #t likelihood 
+} #i likelihood 
+    
+}) # mod   
+
+
+nim.data <- list(y = rCH)
+
+nim.constants <- list(n_ind = dim(rCH)[1], n.occasions = n.occasions,
+                      f = f)
+
+inits <- list(z = z.init)
+
+# ### parameters
+params <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA',
+            'int.p1', 'int.p2', 'int.pJ', 'int.pA',
+            'sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA',
+            # 'mu.P', 'mu.1', 'mu.2', 'mu.J', 'mu.A',
+            'mean.phiP', 'mean.phi1', 'mean.phi2', 'mean.phiJ', 'mean.phiA',
+            'mean.phiP.15', 'mean.phi1.15', 'mean.phi2.15', 'mean.phiJ.15', 'mean.phiA.15')
+
+### run model
+# n.iter = 3500; n.chains = 3; n.burnin = 2000; nthin = 3; nAdapt = 20
+n.iter = 45000; n.chains = 3; n.burnin = 15000; nthin = 3; nAdapt = 20
+
+Rmodel <- nimbleModel(code = SSL_CJS, 
+                      constants = nim.constants, data = nim.data, 
+                      calculate = F, check = F, inits = inits)
+
+conf <- configureMCMC(Rmodel, monitors = params, control = list(adaptInterval = nAdapt), 
+                      thin = nthin, useConjugacy = FALSE)
+
+Rmcmc <- buildMCMC(conf)  #produce uncompiled R mcmc function
+Cmodel <- compileNimble(Rmodel)
+Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+
+out <- runMCMC(Cmcmc, niter = n.iter, nburnin = n.burnin, nchains = n.chains, inits = inits,
+               setSeed = FALSE, progressBar = TRUE, samplesAsCodaMCMC = TRUE)
+
+out_mat <- as.matrix(out)
+
+#summarize output
+rhats <- gelman.diag(out[,c(params[1:14])], multivariate=F, autoburnin=F)
+
+rhats_df <- data.frame(rhats = rhats$psrf[,1], names = row.names(rhats$psrf))
+
+out_median[s,] <- c(summary(out[,c(params[1:14])])$q[,"50%"], max(rhats$psrf[,1], na.rm = T),
+                    rhats_df[which.max(rhats_df[,1]),2])
+colnames(out_median) <- c(names(summary(out[,c(params[1:14])])$q[,"50%"]), 'max_rhat', 'max_rhat_par')
+
+#true values
+out_true[s,] <- c(phi.sim, eval(parse(text = paste0('pars.', scenario)))[1:4])
+colnames(out_true) <- c(phi.pars.names, p.pars.names)
+
+#bias
+bias[s,] <- c((summary(out[,"int.phiP"])$q["50%"]-out_true[s,1])/out_true[s,1],
+              (summary(out[,"int.phi1"])$q["50%"]-out_true[s,2])/out_true[s,2],
+              (summary(out[,"int.phi2"])$q["50%"]-out_true[s,3])/out_true[s,3],
+              (summary(out[,"int.phiJ"])$q["50%"]-out_true[s,4])/out_true[s,4],
+              (summary(out[,"int.phiA"])$q["50%"]-out_true[s,5])/out_true[s,5],
+              (summary(out[,"int.p1"])$q["50%"]-out_true[s,6])/out_true[s,6],
+              (summary(out[,"int.p2"])$q["50%"]-out_true[s,7])/out_true[s,7],
+              (summary(out[,"int.pJ"])$q["50%"]-out_true[s,8])/out_true[s,8],
+              (summary(out[,"int.pA"])$q["50%"]-out_true[s,9])/out_true[s,9])
+colnames(bias) <- c(phi.pars.names, p.pars.names)
+
+#CV
+cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
+            sd(out_mat[,'mean.phi1'])/summary(out[,"mean.phi1"])$q["50%"],
+            sd(out_mat[,'mean.phi2'])/summary(out[,"mean.phi2"])$q["50%"],
+            sd(out_mat[,'mean.phiJ'])/summary(out[,"mean.phiJ"])$q["50%"],
+            sd(out_mat[,'mean.phiA'])/summary(out[,"mean.phiA"])$q["50%"])
+colnames(cv) <- phi.pars.names
+
+#rmse: sqrt(mean(theta.iter-T)^2)
+rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
+              sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
+              sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
+              sqrt(mean((out_mat[,'int.phiJ']-out_true[s,4])^2)),
+              sqrt(mean((out_mat[,'int.phiA']-out_true[s,5])^2)),
+              sqrt(mean((out_mat[,'int.p1']-out_true[s,6])^2)),
+              sqrt(mean((out_mat[,'int.p2']-out_true[s,7])^2)),
+              sqrt(mean((out_mat[,'int.pJ']-out_true[s,8])^2)),
+              sqrt(mean((out_mat[,'int.pA']-out_true[s,9])^2)))
+colnames(rmse) <- c(phi.pars.names, p.pars.names)
+
+#detecting departure from baseline phi
+cri_pars <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')
+
+#detecting change at 15 and 20 yrs
+detect15[s,] <- phi.pars >= 
+        c(quantile(out_mat[,'mean.phiP.15'], probs = 0.95), 
+          quantile(out_mat[,'mean.phi1.15'], probs = 0.95),
+          quantile(out_mat[,'mean.phi2.15'], probs = 0.95),
+          quantile(out_mat[,'mean.phiJ.15'], probs = 0.95),
+          quantile(out_mat[,'mean.phiA.15'], probs = 0.95))
+colnames(detect15) <- phi.pars.names
+
+detect20[s,] <- phi.pars >= 
+        c(quantile(out_mat[,'mean.phiP'], probs = 0.95), 
+          quantile(out_mat[,'mean.phi1'], probs = 0.95),
+          quantile(out_mat[,'mean.phi2'], probs = 0.95),
+          quantile(out_mat[,'mean.phiJ'], probs = 0.95),
+          quantile(out_mat[,'mean.phiA'], probs = 0.95))
+colnames(detect20) <- phi.pars.names
+
+
+} #simulations
+
+# save output
+saveRDS(bias, file = here::here('results', 'WALEU',
+                                paste('S.', scenario, '_bias', batch, '.rds', sep = '')))
+saveRDS(out_median, file = here::here('results', 'WALEU',
+                                      paste('S.', scenario,  '_median', batch, '.rds', sep = '')))
+saveRDS(cv, file = here::here('results', 'WALEU',
+                                      paste('S.', scenario,  '_cv', batch, '.rds', sep = '')))
+saveRDS(rmse, file = here::here('results', 'WALEU',
+                                      paste('S.', scenario,  '_rmse', batch, '.rds', sep = '')))
+
+## batch 
+saveRDS(detect20, file = here::here('results', 'WALEU',
+                                      paste('S.', scenario,  '_detect20_', batch, '.rds', sep = '')))
+saveRDS(detect15, file = here::here('results', 'WALEU',
+                                      paste('S.', scenario,  '_detect15_', batch, '.rds', sep = '')))
+
+
+
+saveRDS(out, file = here::here('results', 'WALEU',
+                               paste('S.', scenario, '_chains', batch, '.rds', sep = '')))
+
+
+
+```
+
+
+```{r convergence summary, eval = T}
+
+sc <- c(1:4)
+
+scenarios <- data.frame(scenario = c(sc),
+                        survey_freq = c(5, 7, 8, 10),
+                        detection = c('Med', 'Med', 'Med', 'Med'),
+                        N = c(rep(50, 4)))
+                        
+med.files <- list.files(path = here::here('results', 'WALEU'), 
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+
+converged <- data.frame()
+for (f in 1:length(med.files)) {
+
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     med.files[f]))[,'max_rhat']) %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(batch = str_sub(med.files[f], -5,-5)) %>%
+  transform(rhat = as.numeric(rhat))
+
+converged <- rbind(converged, rhats)
+
+}
+
+tot_runs <- converged %>%
+  filter(!is.na(rhat)) %>%
+  group_by(scenario, batch) %>%
+  dplyr::summarize(tot = n())
+
+prop_conv <- converged %>%
+  filter(rhat<1.10) %>%
+  group_by(scenario, batch) %>%
+  # dplyr::summarize(conv = n()) %>%
+  dplyr::summarize(conv = n_distinct(rhat)) %>%
+  merge(tot_runs, by = c('scenario', 'batch'), all = T) %>%
+  transform(prop_conv = round(conv/tot,2)) %>%
+  dplyr::select(scenario, tot, batch, prop_conv) 
+
+scenarios_tab <- scenarios %>%
+  merge(prop_conv, by = 'scenario') %>%
+  transform(survey_freq = factor(survey_freq, levels = c(5, 7, 8, 10)))
+
+# kable(scenarios_tab)
+phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
+p_pars <- c('p[1]', 'p[2]', 'p[J]', 'p[A]') 
+freq_labels <- c('1' = 'Annual', '2' = 'Biennial', '3' = 'Triennial')
+occ_labels <- c('5' = '5 yrs', '10' = '10 yrs', '15' = '15 yrs', '20' = '20 yrs')
+
+
+```
+
+```{r results bias, eval = T}
+
+bias.files <- list.files(path = here::here('results', 'WALEU'), 
+                    pattern = 'bias', all.files = FALSE, full.names = F)
+
+rel.bias <- data.frame()
+for (f in 1:length(bias.files)) {
+temp.bias <- data.frame(readRDS(file = here::here('results', 'WALEU',
+                                                  bias.files[f])))
+#use gsub on bias files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     gsub('bias', 'median', bias.files[f])))[,'max_rhat'])
+
+temp.bias$rhat <- as.numeric(rhats$rhat)
+temp <- temp.bias %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', bias.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rel.bias <- rbind(rel.bias, temp)
+
+} #rds file
+
+rel.bias <- rel.bias %>%
+  filter(rhat < 1.1) 
+
+mean.rel.bias <- data.frame(rel.bias) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(length = 20) %>%
+  # bind_rows(mean.rel.bias) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(det = 'Detection', samp_size = 'Study horizon and cohort size') 
+
+#figures
+#heatmaps
+# plot_dat <- mean.rel.bias.20 %>% filter(grepl('phi', variable)) %>%
+#   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+#                               labels = phi_pars)) 
+# 
+# 
+# bias_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
+#        aes(x = survey_freq, y = variable, fill = value)) +
+#   geom_tile(color = 'grey50') +
+#   xlab('Marking frequency') + ylab('Parameter') +
+#   facet_nested(det + detection ~ samp_size + length + N, drop = T, 
+#              labeller = labeller(length = occ_labels),
+#              scales = 'free_x') +
+#   scale_fill_gradient2(name = "Relative bias (%)",
+#                       mid = "#FFFFFF", low = "deepskyblue1", high = "red2", midpoint = 0) +
+#   theme_bw() +
+#   theme(legend.position = 'right',
+#              strip.background = element_rect(fill = "white", color = "black"),
+#         legend.text = element_text(size = 10, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10),
+#         axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10)) +
+#     scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+#dotplots
+dotplot_mean <- rel.bias %>% transform(length = 20) %>% 
+  # bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(value = mean(value)*100, .groups = 'keep') 
+
+dotplot_low <- rel.bias %>% transform(length = 20) %>% 
+  # bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(lower = quantile(value*100, probs = 0.025), .groups = 'keep')
+
+dotplot_up <- rel.bias %>% transform(length = 20) %>% 
+  # bind_rows(rel.bias %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(upper = quantile(value*100, probs = 0.975), .groups = 'keep')
+
+dotplot_dat <- dotplot_mean %>% 
+  merge(dotplot_up, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
+  merge(dotplot_low, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
+  #                              labels = c('Low', 'Medium', 'High'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(det = 'Detection', samp_size = 'Study horizon and cohort size') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+bias_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  # geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + ylab('Mean relative bias (%)') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+```
+
+```{r results rmse, eval = T}
+
+rmse.files <- list.files(path = here::here('results', 'WALEU'), 
+                    pattern = 'rmse', all.files = FALSE, full.names = F)
+
+rmse <- data.frame()
+for (f in 1:length(rmse.files)) {
+temp.rmse <- data.frame(readRDS(file = here::here('results', 'WALEU',
+                                                  rmse.files[f])))
+#use gsub on rmse files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     gsub('rmse', 'median', rmse.files[f])))[,'max_rhat'])
+
+temp.rmse$rhat <- as.numeric(rhats$rhat)
+temp <- temp.rmse %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', rmse.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+rmse <- rbind(rmse, temp)
+
+} #rds file
+
+rmse <- rmse %>%
+  filter(rhat < 1.1) 
+
+mean.rmse <- data.frame(rmse) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(length = 20) %>%
+  transform(survey_frequency = 'Marking frequency & study length', 
+            samp_size = 'Study horizon and cohort size', det = 'Detection') 
+
+
+#plots
+plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+                              labels = phi_pars))
+
+rmse_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
+                    aes(x = factor(survey_freq), y = variable, fill = value)) +
+  geom_tile(color = 'grey50') +
+  xlab('Marking frequency') +
+  ylab('Parameter') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T, 
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+ scale_fill_gradient2(name = "RMSE",
+                      mid = "#FFFFFF", low = "#012345", high = "#012345", midpoint = 0) +
+  theme_bw() +
+  theme(legend.position = 'right',
+             strip.background = element_rect(fill = "white", color = "black"),
+        legend.text = element_text(size = 10, vjust = 0.5),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, color = "black", size = 10),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+    scale_y_discrete("", labels = parse(text = c(eval(expression(levels(plot_dat$variable))))))
+
+##dot plots
+dotplot_dat <- rmse %>% transform(length = 20) %>% 
+  # bind_rows(rmse %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  # dplyr::summarize(value = mean(value),
+  #                  lower = quantile(value, probs = 0.025),
+  #                  upper = quantile(value, probs = 0.975),
+    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
+  #                              labels = c('Low', 'Medium', 'High'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Cohorts', samp_size = 'Study horizon and cohort size',
+            det = 'Detection') %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  xlab('Number of cohorts in 20 yrs') + ylab('RMSE') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+
+
+```
+
+```{r results cv, eval = T}
+
+cv.files <- list.files(path = here::here('results', 'WALEU'), 
+                    pattern = 'cv', all.files = FALSE, full.names = F)
+
+cv <- data.frame()
+for (f in 1:length(cv.files)) {
+temp.cv <- data.frame(readRDS(file = here::here('results', 'WALEU',
+                                                  cv.files[f])))
+#use gsub on cv files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     gsub('cv', 'median', cv.files[f])))[,'max_rhat'])
+
+temp.cv$rhat <- as.numeric(rhats$rhat)
+temp <- temp.cv %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', cv.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+cv <- rbind(cv, temp)
+
+} #rds file
+
+cv <- cv %>%
+  filter(rhat < 1.1) 
+
+dotplot_dat_mean <- cv %>% transform(length = 20) %>% 
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
+  #filter out detection params
+  filter(!is.na(variable))
+
+# dotplot_dat_up <- cv %>% transform(length = 20) %>% 
+  ## bind_rows(cv %>% transform(length = 10)) %>%
+#   merge(scenarios, by = 'scenario', all = F) %>%
+#   group_by(length, variable, detection, survey_freq, N) %>%
+#   dplyr::summarize(upper = quantile(value, probs = 0.975), .groups = 'keep') %>%
+#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
+#   #filter out detection params
+#   filter(!is.na(variable))
+# 
+# dotplot_dat_low <- cv %>% transform(length = 20) %>% 
+##   bind_rows(cv %>% transform(length = 10)) %>%
+#   merge(scenarios, by = 'scenario', all = F) %>%
+#   group_by(length, variable, detection, survey_freq, N) %>%
+#   dplyr::summarize(lower = quantile(value, probs = 0.025), .groups = 'keep') %>%
+#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
+#   #filter out detection params
+#   filter(!is.na(variable))
+
+dotplot_dat <- dotplot_dat_mean %>%
+  # merge(dotplot_dat_low, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
+  # merge(dotplot_dat_up, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Cohorts', samp_size = 'Study duration and cohort size',
+            det = 'Detection')
+
+#study horizon
+cv_cont_dot <- ggplot(dotplot_dat, aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  # geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
+  xlab('Number of cohorts in 20 yrs') + ylab('Coefficient of Variation (CV)') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels),
+  #            scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+
+##threshold approach
+
+#dotplot 
+dotplot_dat <- cv %>% transform(length = 20) %>% 
+  # bind_rows(cv %>% transform(length = 10)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  transform(value_cat = value<=0.125) %>%
+  group_by(length, variable, detection, survey_freq, N) %>%
+  dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
+  #filter out detection params
+  filter(!is.na(variable)) %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Cohorts', samp_size = 'Study duration and cohort size',
+            det = 'Detection')
+
+#probability of CV<=0.125 
+cv_thresh_dot <- ggplot(dotplot_dat, aes(x = factor(survey_freq), y = value_cat, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + ylab('Probability of CV <= 0.125') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+
+```
+
+```{r results detecting change, eval = T}
+
+
+cri.scenarios <- c('detect15', 'detect20')
+# append <- c(5,10)
+
+cri.all <- data.frame()
+
+# for (a in 1:length(append)) { #files for period length
+
+for (j in 1:length(cri.scenarios)) {
+  
+cri.files <- list.files(path = here::here('results', 'WALEU'), 
+                    pattern = paste0(cri.scenarios[j]), all.files = FALSE, full.names = F)
+
+cri <- data.frame()
+for (f in 1:length(cri.files)) {
+temp.cri <- data.frame(readRDS(file = here::here('results', 'WALEU',
+                                                  cri.files[f])))
+#use gsub on cri files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     gsub('median_', 'median', gsub(paste0(cri.scenarios[j]), 'median', cri.files[f]))))[,'max_rhat'])
+
+temp.cri$rhat <- as.numeric(rhats$rhat)
+temp <- temp.cri %>% 
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', cri.files[f]))) %>%
+  transform(run = str_sub(cri.files[f], -5,-5)) %>%
+  # transform(length = append[a]) %>%
+  # transform(length = ifelse(grepl('little5', cri.files[f]) | grepl('big5', cri.files[f]), 5, 10)) %>%
+  transform(threshold = cri.scenarios[j])
+
+cri <- rbind(cri, temp)
+
+# } #appending length of year period
+
+cri.all <- rbind(cri, cri.all)
+
+} #rds file
+} #j
+
+
+mean.cri <- data.frame(cri.all) %>%
+  filter(!is.na(value)) %>%
+    merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(threshold, variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
+                            'p1', 'p2', 'pJ', 'pA'))) %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
+  transform(survey_frequency = 'Cohorts & study length', samp_size = 'Sample size') 
+
+
+#plots
+
+#dotplot
+
+dotplot_dat <- cri.all %>% 
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, survey_freq, N, threshold) %>%
+    dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
+  #                              labels = c('Low', 'Medium', 'High'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
+            det = 'Detection') %>%
+  #filter out detection params
+  filter(!is.na(variable)) %>%
+  transform(threshold = gsub('detect', '', threshold))
+
+cri_dot_big <- ggplot(dotplot_dat,
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + 
+  ylab('Probability of detecting a difference in survival') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+  facet_wrap(.~threshold, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+cri_dot_big <- ggplot(dotplot_dat,
+       aes(x = factor(survey_freq), y = value, col = factor(threshold), group = threshold)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + 
+  ylab('Probability of detecting larger difference in survival') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+  #            scales = 'free_x') +
+  facet_wrap(.~variable, drop = T,
+             labeller = labeller(survey_freq = freq_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[c(2,6,8)]), name = 'Number of years at check')
+
+
+
+```
+
+#### Precision of survival estimates and number of marked cohorts  
+
+The aim of this simulation exercise was to examine changes in the precision and bias of age-specific survival probability estimates depending on the number of marked cohorts over a 20-year time frame. The framework and methods used here were based on what was developed for the survey design project manuscript (Warlick et al. *in prep*). 
+
+##### Methods  
+Briefly, I fit simulated data to a mark-resight model framework to examine the precision of survival estimates for a hypothetical sea lion population (N = 50) depending on the number of marked cohorts over a 20-year time frame. Data were simulated based on empirical estimates (survival and detection probabilities) for pups, yearlings, age-2, juveniles (ages 3-4), and adults (age 5+). In all scenarios, temporal variance in survival was simulated and annual resighting is assumed to occur through the 20-year study. The four scenarios were as follows:  
+
+- 5 biennial cohorts marked in 10 years.  
+- 5 biennial cohorts marked in 10 years with an additional 2 cohorts over the subsequent 10 years.
+- 5 biennial cohorts marked in 10 years with an additional 3 cohorts over the subsequent 10 years.
+- 10 biennial cohorts marked in 20 years.  
+
+Model performance was examined in terms of relative bias (%), root mean square error (RMSE), coefficient of variation (CV), the probability that the CV<= 0.125, and the probability of detecting a difference in survival from a given age-specific baseline (20% of the baseline for pups, 15% for age-1:2, 10% for juveniles, 5% for adults). The following results are based on a total of 100 simulated datasets for each of the four scenarios. 
+
+The probability of detecting a difference in survival and the probability of achieving the CV precision target are the most digestible and meaningful metrics and are presented first. 
+
+
+##### Results  
+
+In terms of the probability of detecting a difference in age-specific survival, we can see that the probability is high for adults across all scenarios and increases with an increasing number of marked cohorts for the other age groups. The "gains" are notable for pup survival, particularly for the difference between 7 and 8 total cohorts. Also notable is that the values are fairly similar whether the survival probability is "checked" at 15 years or 20 years into the study. The dotted line represents an arbitrary benchmark for the probability of "reliably" achieving the given target in this and the following figure. 
+
+
+```{r cri plot, eval = T}
+
+cri_dot_big
+
+```
+
+The probability of achieving a CV<= 0.125 notably increases from the scenario with 5 cohorts to that with 10 cohorts, but there is minimal effective difference between 7 or 8 cohorts. The precision (and therefore probability of detecting a difference) of adult survival is high - the estimates are always informed by fewer cohorts, but they less variable. 
+
+```{r prob cv, eval = T}
+
+cv_thresh_dot
+
+```
+
+In terms of the raw CV values, they are lowest (more precise) for adults, highest (less precise) for pups, and are generally lower with more marked individuals. 
+
+```{r cv, eval = T}
+
+cv_cont_dot
+
+```
+
+Relative bias results are a bit all over the place, but are generally reduced toward zero for pups in scenarios with 8 or 10 cohorts. 
+
+```{r bias, eval = T}
+
+bias_dot
+
+```
+
+RMSE predictably decreases with a higher number of cohorts.  
+
+```{r rmse, eval = T}
+
+rmse_dot
+
+```
+
+

@@ -515,6 +515,7 @@ SSL_CJS <- nimbleCode({
     mean.phi2.5 <- mean(phi2[1:n_ind,3:(n.occasions-5)])
     mean.phiJ.5 <- mean(c(phi3[1:n_ind,4:(n.occasions-5)], 
                         phi4[1:n_ind,5:(n.occasions-5)]))
+    #just phi5 since no other ages are old enough yet
     mean.phiA.5 <- mean(c(phi5[1:n_ind,6:(n.occasions-5)]))
     
 

@@ -66,6 +66,10 @@ co <- resights %>%
   group_by(t_0, reg_0, site_0) %>%
   dplyr::summarize(n = n_distinct(AnimalID))
 
+co_wide <- co %>%
+  dcast(reg_0 + site_0 ~ t_0, value.var = 'n') %>% 
+  filter(site_0 != 'BONNEVILLE DAM')
+
 #resight years
 n_distinct(resights$year)
 
