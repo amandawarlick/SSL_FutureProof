@@ -17,6 +17,7 @@ library(readr)
 library(stringi)
 library(stringr)
 library(logitnorm)
+library(Hmisc)
 
 source(here::here('scripts', 'PlotTheme.R'))
 
@@ -180,7 +181,7 @@ getP <- nimbleFunction(
 
 ```{r scenarios and parameters}
 
-scenario <- 4 #1-4
+scenario <- 7 #1-4
 nsim <- 50
 
 # thresh_small <- c(0.15, 0.1, 0.1, 0.05, 0.025)
@@ -191,7 +192,7 @@ thresh_big <- c(0.2, 0.15, 0.15, 0.1, 0.05)
 # thresh <- thresh_small
 # v_thresh <- 'small_decrease'
 
-batch <- 2 
+batch <- 1 
 thresh <- thresh_big
 v_thresh <- 'big_decrease'
 
@@ -236,6 +237,22 @@ pars.3 <- c(p.pars, n.brand,
 
 #biennial for 20 yrs
 pars.4 <- c(p.pars, n.brand, c(rep(c(n.brand,0), (n.occasions/2)-1), n.brand, 1))
+
+
+#7 cohorts but branding sooner
+pars.5 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              0, 50, 0, 0, 50, 0, 0, 0, 0, 1))
+
+pars.6 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              0, 50, 0, 50, 0, 0, 0, 0, 0, 1))
+
+#8 cohorts but branding sooner
+pars.7 <- c(p.pars, n.brand, 
+            c(rep(c(n.brand,0), (n.occasions/4)), #10 yrs
+              50, 0, 0, 50, 0, 0, 50, 0, 0, 1))
+
 
 
 #marked matrix
@@ -678,6 +695,123 @@ occ_labels <- c('5' = '5 yrs', '10' = '10 yrs', '15' = '15 yrs', '20' = '20 yrs'
 
 
 ```
+
+```{r medians, eval = T}
+
+med.files <- list.files(path = here::here('results', 'WALEU'),
+                    pattern = 'median', all.files = FALSE, full.names = F)
+
+med.dat <- data.frame()
+for (f in 1:length(med.files)) {
+temp.med <- data.frame(readRDS(file = here::here('results', 'WALEU',
+                                                  med.files[f])))
+#use gsub on bias files rather than use different list to make sure they match
+rhats <- data.frame(rhat = readRDS(file = here::here('results', 'WALEU',
+                                                     gsub('median', 'median', med.files[f])))[,'max_rhat'])
+
+temp.med$rhat <- as.numeric(rhats$rhat)
+temp <- temp.med %>%
+  reshape2::melt(id.vars = 'rhat') %>%
+  transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+  transform(value = ifelse(is.nan(value), 0, value))
+
+med.dat <- rbind(med.dat, temp)
+
+} #rds file
+
+med.dat <- med.dat %>%
+  filter(rhat < 1.1)
+
+#want all posterior medians?
+med.all  <- data.frame(med.dat) %>%
+  filter(variable %in% c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')) %>%
+  transform(value = as.numeric(value)) %>%
+  transform(age = gsub('int.phi', '', variable)) %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  transform(age = factor(age, 
+                              levels = c('P', '1', '2', 'J', 'A')))
+
+med_plot <- ggplot(med.all, aes(x = factor(survey_freq), y = value, col = age, group = survey_freq)) +
+  # geom_point() +
+  geom_boxplot() +
+  xlab('Number of cohorts in 20 yrs') +
+  ylab('Posterior median') +
+  facet_wrap(~age) +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+# sig.all  <- data.frame(med.dat) %>%
+#   filter(variable %in% c('sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA')) %>%
+#   transform(value = as.numeric(value)) %>%
+#   transform(age = gsub('sigma', '', variable)) %>%
+#   merge(scenarios, by = 'scenario', all = F) %>%
+#   transform(age = factor(age, 
+#                               levels = c('P', '1', '2', 'J', 'A')))
+# 
+# ggplot(sig.all, aes(x = factor(survey_freq), y = value, col = age, group = survey_freq)) +
+#   # geom_point() +
+#   geom_boxplot() +
+#   xlab('Number of cohorts in 20 yrs') +
+#   ylab('Posterior median') +
+#   facet_wrap(~age) +
+#   theme_bw() +
+#   plot_theme(legend.position = 'top',
+#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+#   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+#mean of medians
+mean.med.dat  <- data.frame(med.dat) %>%
+  # filter(variable %nin% c('max_rhat', 'max_rhat_par', 'p1', 'p2', 'pJ', 'pA')) %>%
+  filter(variable %in% c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')) %>%
+  transform(value = as.numeric(value)) %>%
+  group_by(variable, scenario) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  merge(scenarios, by = 'scenario', all = F) %>%
+  group_by(variable, detection, N, survey_freq) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  transform(variable = factor(variable, 
+                              levels = c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA'))) %>%
+  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+  transform(age = gsub('int.phi', '', variable)) %>%
+  transform(det = 'Detection', samp_size = 'Study horizon and cohort size') 
+
+# mean.sig.dat  <- data.frame(med.dat) %>%
+#   filter(variable %in% c('sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA')) %>%
+#   transform(value = as.numeric(value)) %>%
+#   group_by(variable, scenario) %>%
+#   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+#   merge(scenarios, by = 'scenario', all = F) %>%
+#   group_by(variable, detection, N, survey_freq) %>%
+#   dplyr::summarize(sigma = mean(value), .groups = 'keep') %>%
+#   transform(variable = factor(variable, 
+#                               levels = c('sigmaP', 'sigma1', 'sigma2', 'sigmaJ', 'sigmaA'))) %>%
+#   transform(age = gsub('sigma', '', variable)) %>%
+#   # transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
+#   #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
+#   transform(det = 'Detection', samp_size = 'Study horizon and cohort size')
+
+
+# ggplot(mean.med.dat, 
+#          aes(x = factor(survey_freq), y = value, col = factor(age), group = age)) +
+#   geom_point() + 
+#   # geom_errorbar(aes(ymin = lower, ymax = upper)) +
+#   # geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+#   xlab('Number of cohorts in 20 yrs') + ylab('Mean relative bias (%)') +
+#   # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+#   #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+#   #            scales = 'free_x') +
+# 
+#   theme_bw() +
+#   plot_theme(legend.position = 'top',
+#              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+#   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+
+```
+
 
 ```{r results bias, eval = T}
 
@@ -1135,6 +1269,12 @@ The probability of detecting a difference in survival and the probability of ach
 
 In terms of the probability of detecting a difference in age-specific survival, we can see that the probability is high for adults across all scenarios and increases with an increasing number of marked cohorts for the other age groups. The "gains" are notable for pup survival, particularly for the difference between 7 and 8 total cohorts. Also notable is that the values are fairly similar whether the survival probability is "checked" at 15 years or 20 years into the study. The dotted line represents an arbitrary benchmark for the probability of "reliably" achieving the given target in this and the following figure. 
 
+```{r medians plot, eval = T}
+
+med_plot
+
+```
+The spread of posterior medians gets smaller with greater number of cohorts.
 
 ```{r cri plot, eval = T}
 
