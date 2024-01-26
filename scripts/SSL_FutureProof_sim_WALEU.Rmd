@@ -645,12 +645,13 @@ saveRDS(out, file = here::here('results', 'WALEU',
 
 ```{r convergence summary, eval = T}
 
-sc <- c(1:4)
+sc <- c(1:7)
 
 scenarios <- data.frame(scenario = c(sc),
-                        survey_freq = c(5, 7, 8, 10),
-                        detection = c('Med', 'Med', 'Med', 'Med'),
-                        N = c(rep(50, 4)))
+                        survey_freq = c(5, 7, 8, 10, 7, 7, 8),
+                        cohorts = c(5, '7a', '8a', 10, '7b', '7c', '8b'),
+                        detection = rep(c('Med'), 7),
+                        N = c(rep(50, 7)))
                         
 med.files <- list.files(path = here::here('results', 'WALEU'), 
                     pattern = 'median', all.files = FALSE, full.names = F)
@@ -685,7 +686,25 @@ prop_conv <- converged %>%
 
 scenarios_tab <- scenarios %>%
   merge(prop_conv, by = 'scenario') %>%
-  transform(survey_freq = factor(survey_freq, levels = c(5, 7, 8, 10)))
+  transform(survey_freq = factor(survey_freq, levels = c(5, 7, 8, 10))) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10'))) 
+
+brand_pattern <- data.frame(scenario = c(1:7),
+                            pattern = c("B,0,B,0,B,0,B,0,B,0,0,0,0,0,0,0,0,0,0,0",
+                                        "B,0,B,0,B,0,B,0,B,0,0,0,0,B,0,0,B,0,0,0",
+                                        "B,0,B,0,B,0,B,0,B,0,0,B,0,0,B,0,0,B,0,0",
+                                        "B,0,B,0,B,0,B,0,B,0,B,0,B,0,B,0,B,0,B,0",
+                                        "B,0,B,0,B,0,B,0,B,0,0,B,0,0,B,0,0,0,0,0",
+                                        "B,0,B,0,B,0,B,0,B,0,0,B,0,B,0,0,0,0,0,0",
+                                        "B,0,B,0,B,0,B,0,B,0,B,0,0,B,0,0,B,0,0,0"),
+                            description = c('Biennial + none', '7 latest', '8 latest',
+                                            'Biennial', '7', '7 soonest', '8 soonest'))
+
+scenarios_table <- scenarios %>%
+  merge(brand_pattern, by = 'scenario') %>%
+  arrange(survey_freq, cohorts) %>%
+  dplyr::select(c('cohorts', 'pattern', 'description'))
 
 # kable(scenarios_tab)
 phi_pars <- c('phi[P]','phi[1]', 'phi[2]', 'phi[J]', 'phi[A]')
@@ -713,6 +732,7 @@ temp.med$rhat <- as.numeric(rhats$rhat)
 temp <- temp.med %>%
   reshape2::melt(id.vars = 'rhat') %>%
   transform(scenario = parse_number(gsub('S.', '', med.files[f]))) %>%
+    transform(batch = str_sub(med.files[f], -5,-5)) %>%
   transform(value = ifelse(is.nan(value), 0, value))
 
 med.dat <- rbind(med.dat, temp)
@@ -720,20 +740,36 @@ med.dat <- rbind(med.dat, temp)
 } #rds file
 
 med.dat <- med.dat %>%
+  # filter(batch == 1) %>%
   filter(rhat < 1.1)
 
-#want all posterior medians?
 med.all  <- data.frame(med.dat) %>%
   filter(variable %in% c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')) %>%
   transform(value = as.numeric(value)) %>%
   transform(age = gsub('int.phi', '', variable)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   transform(age = factor(age, 
-                              levels = c('P', '1', '2', 'J', 'A')))
+                              levels = c('P', '1', '2', 'J', 'A'))) %>%
+  transform(survey_freq = factor(survey_freq, levels = c(5, 7, 8, 10))) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 med_plot <- ggplot(med.all, aes(x = factor(survey_freq), y = value, col = age, group = survey_freq)) +
   # geom_point() +
-  geom_boxplot() +
+  # geom_boxplot() +
+  geom_violin(adjust = 2, trim = T, draw_quantiles = c(0.025,0.25,0.75,0.975)) +
+  xlab('Number of cohorts in 20 yrs') +
+  ylab('Posterior median') +
+  facet_wrap(~age) +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+med_plotb <- ggplot(med.all, aes(x = factor(cohorts), y = value, col = age, group = cohorts)) +
+  # geom_point() +
+  # geom_boxplot() +
+  geom_violin(adjust = 2, trim = T, draw_quantiles = c(0.025,0.25,0.75,0.975)) +
   xlab('Number of cohorts in 20 yrs') +
   ylab('Posterior median') +
   facet_wrap(~age) +
@@ -830,6 +866,7 @@ temp.bias$rhat <- as.numeric(rhats$rhat)
 temp <- temp.bias %>% 
   reshape2::melt(id.vars = 'rhat') %>%
   transform(scenario = parse_number(gsub('S.', '', bias.files[f]))) %>%
+  transform(batch = str_sub(bias.files[f], -5,-5)) %>%
   transform(value = ifelse(is.nan(value), 0, value))
 
 rel.bias <- rbind(rel.bias, temp)
@@ -837,13 +874,14 @@ rel.bias <- rbind(rel.bias, temp)
 } #rds file
 
 rel.bias <- rel.bias %>%
+  # filter(batch > 1) %>%
   filter(rhat < 1.1) 
 
 mean.rel.bias <- data.frame(rel.bias) %>%
   group_by(variable, scenario) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(variable, detection, N, survey_freq) %>%
+  group_by(variable, detection, N, survey_freq, cohorts) %>%
   dplyr::summarize(value = mean(value)*100, .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
@@ -882,45 +920,36 @@ mean.rel.bias <- data.frame(rel.bias) %>%
 dotplot_mean <- rel.bias %>% transform(length = 20) %>% 
   # bind_rows(rel.bias %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
+  group_by(length, variable, detection, survey_freq, N, cohorts) %>%
     dplyr::summarize(value = mean(value)*100, .groups = 'keep') 
 
-dotplot_low <- rel.bias %>% transform(length = 20) %>% 
-  # bind_rows(rel.bias %>% transform(length = 10)) %>%
-  merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
-    dplyr::summarize(lower = quantile(value*100, probs = 0.025), .groups = 'keep')
-
-dotplot_up <- rel.bias %>% transform(length = 20) %>% 
-  # bind_rows(rel.bias %>% transform(length = 10)) %>%
-  merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
-    dplyr::summarize(upper = quantile(value*100, probs = 0.975), .groups = 'keep')
-
 dotplot_dat <- dotplot_mean %>% 
-  merge(dotplot_up, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
-  merge(dotplot_low, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
-  #                              labels = c('Low', 'Medium', 'High'))) %>%
-  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
-  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
-  transform(det = 'Detection', samp_size = 'Study horizon and cohort size') %>%
+   transform(det = 'Detection', samp_size = 'Study horizon and cohort size') %>%
   #filter out detection params
-  filter(!is.na(variable))
+  filter(!is.na(variable)) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
-bias_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+bias_dot <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   # geom_errorbar(aes(ymin = lower, ymax = upper)) +
   geom_hline(aes(yintercept = 0), linetype = 'dotted') +
   xlab('Number of cohorts in 20 yrs') + ylab('Mean relative bias (%)') +
-  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
-  #            labeller = labeller(survey_freq = freq_labels, length = occ_labels),
-  #            scales = 'free_x') +
-
   theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+bias_dotb <- ggplot(dotplot_dat,
+       aes(x = factor(cohorts), y = value, col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  # geom_errorbar(aes(ymin = lower, ymax = upper)) +
+  geom_hline(aes(yintercept = 0), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + ylab('Mean relative bias (%)') +
+    theme_bw() +
   plot_theme(legend.position = 'top',
              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
@@ -957,14 +986,16 @@ mean.rmse <- data.frame(rmse) %>%
   group_by(variable, scenario) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(variable, detection, N, survey_freq) %>%
+  group_by(variable, detection, N, survey_freq, cohorts) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
   transform(length = 20) %>%
   transform(survey_frequency = 'Marking frequency & study length', 
-            samp_size = 'Study horizon and cohort size', det = 'Detection') 
+            samp_size = 'Study horizon and cohort size', det = 'Detection') %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 
 #plots
@@ -972,7 +1003,7 @@ plot_dat <- mean.rmse %>% filter(grepl('phi', variable)) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
                               labels = phi_pars))
 
-rmse_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)), 
+rmse_heat <- ggplot(plot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')), 
                     aes(x = factor(survey_freq), y = variable, fill = value)) +
   geom_tile(color = 'grey50') +
   xlab('Marking frequency') +
@@ -992,25 +1023,19 @@ rmse_heat <- ggplot(plot_dat %>% filter(N %in% c(50,100,200)),
 
 ##dot plots
 dotplot_dat <- rmse %>% transform(length = 20) %>% 
-  # bind_rows(rmse %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
-  # dplyr::summarize(value = mean(value),
-  #                  lower = quantile(value, probs = 0.025),
-  #                  upper = quantile(value, probs = 0.975),
+  group_by(length, variable, detection, survey_freq, N, cohorts) %>%
     dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
-  #                              labels = c('Low', 'Medium', 'High'))) %>%
-  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
-  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
   transform(survey_frequency = 'Cohorts', samp_size = 'Study horizon and cohort size',
             det = 'Detection') %>%
   #filter out detection params
-  filter(!is.na(variable))
+  filter(!is.na(variable)) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
-rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
+rmse_dot <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   xlab('Number of cohorts in 20 yrs') + ylab('RMSE') +
@@ -1023,6 +1048,15 @@ rmse_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
 
 
+rmse_dotb <- ggplot(dotplot_dat,
+       aes(x = factor(cohorts), y = value, col = factor(variable), 
+           group = variable)) +
+  geom_point() + geom_line() +
+  xlab('Number of cohorts in 20 yrs') + ylab('RMSE') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
 
 ```
 
@@ -1054,42 +1088,37 @@ cv <- cv %>%
 
 dotplot_dat_mean <- cv %>% transform(length = 20) %>% 
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
-    dplyr::summarize(value = mean(value), .groups = 'keep') %>%
-  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-  #filter out detection params
-  filter(!is.na(variable))
-
-# dotplot_dat_up <- cv %>% transform(length = 20) %>% 
-  ## bind_rows(cv %>% transform(length = 10)) %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(length, variable, detection, survey_freq, N) %>%
-#   dplyr::summarize(upper = quantile(value, probs = 0.975), .groups = 'keep') %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-#   #filter out detection params
-#   filter(!is.na(variable))
-# 
-# dotplot_dat_low <- cv %>% transform(length = 20) %>% 
-##   bind_rows(cv %>% transform(length = 10)) %>%
-#   merge(scenarios, by = 'scenario', all = F) %>%
-#   group_by(length, variable, detection, survey_freq, N) %>%
-#   dplyr::summarize(lower = quantile(value, probs = 0.025), .groups = 'keep') %>%
-#   transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
-#   #filter out detection params
-#   filter(!is.na(variable))
+  group_by(length, variable, detection, survey_freq, N, cohorts) %>%
+  dplyr::summarize(value = mean(value), .groups = 'keep') %>%
+  filter(!is.na(variable)) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 dotplot_dat <- dotplot_dat_mean %>%
-  # merge(dotplot_dat_low, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
-  # merge(dotplot_dat_up, by = c('length', 'variable', 'detection', 'survey_freq', 'N')) %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'), 
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
-  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
   transform(survey_frequency = 'Cohorts', samp_size = 'Study duration and cohort size',
             det = 'Detection')
 
 #study horizon
-cv_cont_dot <- ggplot(dotplot_dat, aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+cv_cont_dot <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')), 
+                      aes(x = factor(survey_freq), y = value, 
+                          col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  # geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
+  xlab('Number of cohorts in 20 yrs') + ylab('Coefficient of Variation (CV)') +
+  # facet_nested(det + detection ~ samp_size + length + N, drop = T,
+  #            labeller = labeller(survey_freq = freq_labels),
+  #            scales = 'free_x') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+
+cv_cont_dotb <- ggplot(dotplot_dat, 
+                      aes(x = factor(cohorts), y = value, 
+                          col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   # geom_errorbar(aes(ymin = lower, ymax = upper, x = survey_freq), width = 0.1) +
   xlab('Number of cohorts in 20 yrs') + ylab('Coefficient of Variation (CV)') +
@@ -1103,13 +1132,10 @@ cv_cont_dot <- ggplot(dotplot_dat, aes(x = factor(survey_freq), y = value, col =
 
 
 ##threshold approach
-
-#dotplot 
 dotplot_dat <- cv %>% transform(length = 20) %>% 
-  # bind_rows(cv %>% transform(length = 10)) %>%
   merge(scenarios, by = 'scenario', all = F) %>%
   transform(value_cat = value<=0.125) %>%
-  group_by(length, variable, detection, survey_freq, N) %>%
+  group_by(length, variable, detection, survey_freq, N, cohorts) %>%
   dplyr::summarize(value_cat = mean(value_cat), .groups = 'keep') %>%
   # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'), labels = c('Low', 'Medium', 'High'))) %>%
   #filter out detection params
@@ -1119,10 +1145,24 @@ dotplot_dat <- cv %>% transform(length = 20) %>%
   # transform(survey_freq = factor(survey_freq, levels = c(1,2,3),
   #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
   transform(survey_frequency = 'Cohorts', samp_size = 'Study duration and cohort size',
-            det = 'Detection')
+            det = 'Detection') %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 #probability of CV<=0.125 
-cv_thresh_dot <- ggplot(dotplot_dat, aes(x = factor(survey_freq), y = value_cat, col = factor(variable), group = variable)) +
+cv_thresh_dot <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')), 
+                        aes(x = factor(survey_freq), y = value_cat, 
+                            col = factor(variable), group = variable)) +
+  geom_point() + geom_line() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Number of cohorts in 20 yrs') + ylab('Probability of CV <= 0.125') +
+  theme_bw() +
+  plot_theme(legend.position = 'top',
+             plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
+  scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
+
+cv_thresh_dotb <- ggplot(dotplot_dat, aes(x = factor(cohorts), y = value_cat, 
+                                          col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   xlab('Number of cohorts in 20 yrs') + ylab('Probability of CV <= 0.125') +
@@ -1182,35 +1222,32 @@ cri.all <- rbind(cri, cri.all)
 mean.cri <- data.frame(cri.all) %>%
   filter(!is.na(value)) %>%
     merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(threshold, variable, detection, N, survey_freq) %>%
+  group_by(threshold, variable, detection, N, survey_freq, cohorts) %>%
   dplyr::summarize(value = mean(value), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA',
                             'p1', 'p2', 'pJ', 'pA'))) %>%
   # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'))) %>%
-  transform(survey_frequency = 'Cohorts & study length', samp_size = 'Sample size') 
+  transform(survey_frequency = 'Cohorts & study length', samp_size = 'Sample size') %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 
 #plots
-
-#dotplot
-
 dotplot_dat <- cri.all %>% 
   merge(scenarios, by = 'scenario', all = F) %>%
-  group_by(variable, detection, survey_freq, N, threshold) %>%
+  group_by(variable, detection, survey_freq, N, threshold, cohorts) %>%
     dplyr::summarize(value = mean(value, na.rm = T), .groups = 'keep') %>%
   transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
                               labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
-  # transform(detection = factor(detection, levels = c('Low', 'Med', 'High'),
-  #                              labels = c('Low', 'Medium', 'High'))) %>%
-  # transform(survey_freq = factor(survey_freq, levels = c(1,2,3), 
-  #                                labels = c('Annual', 'Biennial', 'Triennial'))) %>%
   transform(survey_frequency = 'Marking frequency', samp_size = 'Study horizon and cohort size',
             det = 'Detection') %>%
   #filter out detection params
   filter(!is.na(variable)) %>%
-  transform(threshold = gsub('detect', '', threshold))
+  transform(threshold = gsub('detect', '', threshold)) %>%
+  transform(cohorts = factor(cohorts,
+                  levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
-cri_dot_big <- ggplot(dotplot_dat,
+cri_dot_big <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
@@ -1227,8 +1264,8 @@ cri_dot_big <- ggplot(dotplot_dat,
              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
 
-cri_dot_big <- ggplot(dotplot_dat,
-       aes(x = factor(survey_freq), y = value, col = factor(threshold), group = threshold)) +
+cri_dot_bigb <- ggplot(dotplot_dat,
+       aes(x = factor(cohorts), y = value, col = factor(threshold), group = threshold)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   xlab('Number of cohorts in 20 yrs') + 
@@ -1264,21 +1301,31 @@ Model performance was examined in terms of relative bias (%), root mean square e
 
 The probability of detecting a difference in survival and the probability of achieving the CV precision target are the most digestible and meaningful metrics and are presented first. 
 
+```{r scenarios tab, eval = T}
+
+kable(scenarios_table)
+
+```
 
 ##### Results  
 
 In terms of the probability of detecting a difference in age-specific survival, we can see that the probability is high for adults across all scenarios and increases with an increasing number of marked cohorts for the other age groups. The "gains" are notable for pup survival, particularly for the difference between 7 and 8 total cohorts. Also notable is that the values are fairly similar whether the survival probability is "checked" at 15 years or 20 years into the study. The dotted line represents an arbitrary benchmark for the probability of "reliably" achieving the given target in this and the following figure. 
 
+The spread of posterior medians would theoretically get smaller as information gets better (more cohorts, larger sample size, higher detection, etc.), but we only see that happening here in a few instances, most notably with yearling survival. In terms of branding schedule, we see overall little to no differences in the posterior quantiles across 7 or 8 cohorts except in a few places. 
+
 ```{r medians plot, eval = T}
 
-med_plot
+# med_plot
+med_plotb
 
 ```
-The spread of posterior medians gets smaller with greater number of cohorts.
+ 
+The following two figures have the same information, just faceted differently (first showing age comparisons, then showing 15 vs. 20-yr study comparisons). The probability of detecting a difference between a hypothetical presumed baseline and actual survival probabilities over the study period generally increases from 5 to 10 cohorts, with some messy stuff in between. For yearlings and age-2 survival, we can see that (according to these results), having only 2 additional cohorts but earlier branding leads to better estimation than having 3 (for a total of 8). 
 
 ```{r cri plot, eval = T}
 
 cri_dot_big
+cri_dot_bigb
 
 ```
 
@@ -1286,15 +1333,19 @@ The probability of achieving a CV<= 0.125 notably increases from the scenario wi
 
 ```{r prob cv, eval = T}
 
-cv_thresh_dot
+# cv_thresh_dot
+cv_thresh_dotb
 
 ```
+
+
 
 In terms of the raw CV values, they are lowest (more precise) for adults, highest (less precise) for pups, and are generally lower with more marked individuals. 
 
 ```{r cv, eval = T}
 
-cv_cont_dot
+# cv_cont_dot
+cv_cont_dotb
 
 ```
 
@@ -1302,7 +1353,8 @@ Relative bias results are a bit all over the place, but are generally reduced to
 
 ```{r bias, eval = T}
 
-bias_dot
+# bias_dot
+bias_dotb
 
 ```
 
@@ -1310,7 +1362,8 @@ RMSE predictably decreases with a higher number of cohorts.
 
 ```{r rmse, eval = T}
 
-rmse_dot
+# rmse_dot
+rmse_dotb
 
 ```
 
