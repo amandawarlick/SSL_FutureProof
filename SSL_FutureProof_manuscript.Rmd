@@ -59,10 +59,14 @@ converged <- rbind(converged, rhats)
 
 }
 
-tot_runs <- converged %>%
+tot_runs_batch <- converged %>%
   filter(!is.na(rhat)) %>%
   group_by(scenario, batch) %>%
   dplyr::summarize(tot = n())
+
+tot_runs <- tot_runs_batch %>%
+  group_by(scenario) %>%
+  dplyr::summarize(tot = sum(tot))
 
 prop_conv <- converged %>%
   filter(rhat<1.10) %>%

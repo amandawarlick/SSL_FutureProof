@@ -756,8 +756,8 @@ med.all  <- data.frame(med.dat) %>%
 
 med_plot <- ggplot(med.all, aes(x = factor(survey_freq), y = value, col = age, group = survey_freq)) +
   # geom_point() +
-  # geom_boxplot() +
-  geom_violin(adjust = 2, trim = T, draw_quantiles = c(0.025,0.25,0.75,0.975)) +
+  geom_boxplot() +
+  # geom_violin(adjust = 2, trim = T, draw_quantiles = c(0.025,0.25,0.75,0.975)) +
   xlab('Number of cohorts in 20 yrs') +
   ylab('Posterior median') +
   facet_wrap(~age) +
@@ -1290,16 +1290,14 @@ cri_dot_bigb <- ggplot(dotplot_dat,
 The aim of this simulation exercise was to examine changes in the precision and bias of age-specific survival probability estimates depending on the number of marked cohorts over a 20-year time frame. The framework and methods used here were based on what was developed for the survey design project manuscript (Warlick et al. *in prep*). 
 
 ##### Methods  
-Briefly, I fit simulated data to a mark-resight model framework to examine the precision of survival estimates for a hypothetical sea lion population (N = 50) depending on the number of marked cohorts over a 20-year time frame. Data were simulated based on empirical estimates (survival and detection probabilities) for pups, yearlings, age-2, juveniles (ages 3-4), and adults (age 5+). In all scenarios, temporal variance in survival was simulated and annual resighting is assumed to occur through the 20-year study. The four scenarios were as follows:  
+Briefly, I fit simulated data to a mark-resight model framework to examine the precision of survival estimates for a hypothetical sea lion population (N = 50) depending on the number of marked cohorts over a 20-year time frame. Data were simulated based on empirical estimates (survival and detection probabilities) for pups, yearlings, age-2, juveniles (ages 3-4), and adults (age 5+). In all scenarios, temporal variance in survival was simulated (again based on empirical estimates) and annual resighting is assumed to occur through the 20-year study. The four main scenarios were as follows:  
 
 - 5 biennial cohorts marked in 10 years.  
 - 5 biennial cohorts marked in 10 years with an additional 2 cohorts over the subsequent 10 years.
 - 5 biennial cohorts marked in 10 years with an additional 3 cohorts over the subsequent 10 years.
 - 10 biennial cohorts marked in 20 years.  
 
-Model performance was examined in terms of relative bias (%), root mean square error (RMSE), coefficient of variation (CV), the probability that the CV<= 0.125, and the probability of detecting a difference in survival from a given age-specific baseline (20% of the baseline for pups, 15% for age-1:2, 10% for juveniles, 5% for adults). The following results are based on a total of 100 simulated datasets for each of the four scenarios. 
-
-The probability of detecting a difference in survival and the probability of achieving the CV precision target are the most digestible and meaningful metrics and are presented first. 
+Additionally, to understand how much estimates varied based on the timing of those two or three branded cohorts, I ran three additional scenarios as follows:  
 
 ```{r scenarios tab, eval = T}
 
@@ -1307,9 +1305,15 @@ kable(scenarios_table)
 
 ```
 
+Model performance was examined in terms of relative bias (%), root mean square error (RMSE), coefficient of variation (CV), the probability that the CV<= 0.125, and the probability of detecting a difference in survival from a given age-specific baseline (20% different from the baseline for pups, 15% for age-1:2, 10% for juveniles, 5% for adults). The following results are based on a total of 100 simulated datasets for each of the seven scenarios. 
+
+The probability of detecting a difference in survival and the probability of achieving the CV precision target are the most digestible and meaningful metrics and are presented first. 
+
+
+
 ##### Results  
 
-In terms of the probability of detecting a difference in age-specific survival, we can see that the probability is high for adults across all scenarios and increases with an increasing number of marked cohorts for the other age groups. The "gains" are notable for pup survival, particularly for the difference between 7 and 8 total cohorts. Also notable is that the values are fairly similar whether the survival probability is "checked" at 15 years or 20 years into the study. The dotted line represents an arbitrary benchmark for the probability of "reliably" achieving the given target in this and the following figure. 
+ 
 
 The spread of posterior medians would theoretically get smaller as information gets better (more cohorts, larger sample size, higher detection, etc.), but we only see that happening here in a few instances, most notably with yearling survival. In terms of branding schedule, we see overall little to no differences in the posterior quantiles across 7 or 8 cohorts except in a few places. 
 
@@ -1321,6 +1325,10 @@ med_plotb
 ```
  
 The following two figures have the same information, just faceted differently (first showing age comparisons, then showing 15 vs. 20-yr study comparisons). The probability of detecting a difference between a hypothetical presumed baseline and actual survival probabilities over the study period generally increases from 5 to 10 cohorts, with some messy stuff in between. For yearlings and age-2 survival, we can see that (according to these results), having only 2 additional cohorts but earlier branding leads to better estimation than having 3 (for a total of 8). 
+
+The "gains" are notable for pup survival, particularly for the difference between 7 and 8 total cohorts. Also notable is that the values are fairly similar whether the survival probability is "checked" at 15 years or 20 years into the study. The dotted line represents an arbitrary benchmark for the probability of "reliably" achieving the given target in this and the following figure.
+
+ 
 
 ```{r cri plot, eval = T}
 
