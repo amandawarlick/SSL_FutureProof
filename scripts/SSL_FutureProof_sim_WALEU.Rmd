@@ -1248,7 +1248,8 @@ dotplot_dat <- cri.all %>%
                   levels = c('5', '7a', '7b', '7c', '8a', '8b', '10')))
 
 cri_dot_big <- ggplot(dotplot_dat %>% filter(cohorts %in% c('5', '7a', '8a', '10')),
-       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+                      aes(x = factor(survey_freq), y = value, col = factor(variable), 
+                          group = variable)) +
   geom_point() + geom_line() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   xlab('Number of cohorts in 20 yrs') + 
