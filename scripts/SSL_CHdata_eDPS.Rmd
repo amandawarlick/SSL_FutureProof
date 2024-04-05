@@ -70,6 +70,16 @@ co_wide <- co %>%
   dcast(reg_0 + site_0 ~ t_0, value.var = 'n') %>% 
   filter(site_0 != 'BONNEVILLE DAM')
 
+##CA: 2 cohorts 145 avg from 2001-2004
+##OR: 8 cohorts 175 avg from 2001-2015
+
+##EGOA: 3 cohorts 96 avg from 2000-2017
+##CGOA: 6 cohorts 197 avg
+##EALEU: 6 cohorts 166 avg
+
+##CALEU: 3 cohorts 53 avg
+##WALEU: 4 cohorts 52 avg
+
 #resight years
 n_distinct(resights$year)
 
