@@ -1029,19 +1029,19 @@ effort_dat <- cri_delta_steps %>%
   transform(cat = ifelse(step == 'Low', 'Low', 'Other')) %>%
   transform(value_2 = ifelse(cat == 'Other', 0, value)) %>%
   #modifying here
-  transform(step_eqEff = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 6,
+  transform(step_eqCost = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 6,
                                 ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 4,
                                        ifelse(category == 'Baseline', 1,
                                        ifelse(category == 'Detection only', det_cat, 
                                               ifelse(category == 'Marking frequency only', survey_cat, 100)))))) %>%
-  transform(step_eqEff = ifelse(is.na(step_eqEff), 1, step_eqEff)) %>%
+  transform(step_eqCost = ifelse(is.na(step_eqCost), 1, step_eqCost)) %>%
   transform(step_ineqCost = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 9,
                                 ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 6,
                                        ifelse(category == 'Baseline', 1,
                                        ifelse(category == 'Detection only', det_cat, 
                                               ifelse(category == 'Marking frequency only', survey_cat*2, 100)))))) %>%
   transform(step_uneqCost = ifelse(is.na(step_ineqCost), 1, step_ineqCost)) %>%
-  transform(step_eff_label = factor(step_eqEff, levels = c(1, 2, 3, 4, 6), 
+  transform(step_eff_label = factor(step_eqCost, levels = c(1, 2, 3, 4, 6), 
                                     labels = c('Baseline', 'Low', 'Medium', 'High', 'Highest')))
 
 #probability of detecting change....
@@ -1105,7 +1105,7 @@ effort_plot <- plot_grid(effort_grid, effort_dot, labels = c('(a)', '(b)'), rel_
 effort_dot_eff <- ggplot(effort_dat %>% filter(!is.na(step)) %>% filter(variable == 'Pup') %>%
          transform(samp_size = 'Study duration & cohort size') %>%
          transform(length = factor(length, labels = c('10 yrs', '20 yrs'))), 
-       # aes(step_eqEff, value, group = category, col = category)) +
+       # aes(step_eqCost, value, group = category, col = category)) +
          aes(step_eff_label, value, group = category, col = category)) +
 
   geom_point() +
@@ -1412,19 +1412,27 @@ effort_dat <- cri_delta_steps %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High'))) %>%
   transform(cat = ifelse(step == 'Low', 'Low', 'Other')) %>%
   transform(value_2 = ifelse(cat == 'Other', 0, value)) %>%
-  transform(step_eqEff = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 6,
+  transform(step_eqCost = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 6,
                                 ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 4,
                                        ifelse(category == 'Baseline', 1,
                                        ifelse(category == 'Detection only', det_cat, 
                                               ifelse(category == 'Marking frequency only', survey_cat, 100)))))) %>%
-  transform(step_eqEff = ifelse(is.na(step_eqEff), 1, step_eqEff)) %>%
-  transform(step_ineqCost = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 9,
+  transform(step_eqCost = ifelse(is.na(step_eqCost), 1, step_eqCost)) %>%
+  #if marking is more costly
+  transform(step_uneqCost_MR = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 9,
                                 ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 6,
                                        ifelse(category == 'Baseline', 1,
                                        ifelse(category == 'Detection only', det_cat, 
                                               ifelse(category == 'Marking frequency only', survey_cat*2, 100)))))) %>%
-  transform(step_uneqCost = ifelse(is.na(step_ineqCost), 1, step_ineqCost)) %>%
-  transform(step_eff_label = factor(step_eqEff, levels = c(1, 2, 3, 4, 6), 
+  transform(step_uneqCost_MR = ifelse(is.na(step_uneqCost_MR), 1, step_uneqCost_MR)) %>%
+  #if detection is more costly
+    transform(step_uneqCost_d = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 9,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 6,
+                                       ifelse(category == 'Baseline', 1,
+                                       ifelse(category == 'Detection only', det_cat*2, 
+                                              ifelse(category == 'Marking frequency only', survey_cat, 100)))))) %>%
+  transform(step_uneqCost_d = ifelse(is.na(step_uneqCost_d), 1, step_uneqCost_d)) %>%
+  transform(step_eff_label = factor(step_eqCost, levels = c(1, 2, 3, 4, 6), 
                                     labels = c('Baseline', 'Low', 'Medium', 'High', 'Highest'))) %>%
   transform(samp_size = 'Study duration & cohort size') %>%
   transform(length = factor(length, labels = c('10 yrs', '20 yrs'))) %>%
@@ -1442,25 +1450,32 @@ text_dat <- cri_delta_steps %>%
   transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High'))) %>%
   transform(det_cat = factor(det_cat, labels = c('Low', 'Medium', 'High')),
             survey_cat = factor(survey_cat, labels = c('Triennial', 'Biennial', 'Annual'))) %>%
-  transform(eff_cat = ifelse(step == 'Low', '1',
+  transform(Eqeff_cat = ifelse(step == 'Low', '1',
                         ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '2',
                         ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '2',
                         ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '4',
                                 ifelse(survey_cat == 'Annual' & det_cat == 'High', '6',
                                 ifelse(det_cat == 'High' & survey_cat == 'Triennial', '3',
                                 ifelse(survey_cat == 'Annual' & det_cat == 'Low', '3', NA)))))))) %>%
-  transform(cost_cat = ifelse(step == 'Low', '1',
+  transform(MRcost_cat = ifelse(step == 'Low', '1',
                         ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '2',
                         ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '4',
                         ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '6',
                                 ifelse(survey_cat == 'Annual' & det_cat == 'High', '9',
                                 ifelse(det_cat == 'High' & survey_cat == 'Triennial', '3',
-                                ifelse(survey_cat == 'Annual' & det_cat == 'Low', '6', NA)))))))) 
+                                ifelse(survey_cat == 'Annual' & det_cat == 'Low', '6', NA)))))))) %>%
+  transform(Dcost_cat = ifelse(step == 'Low', '1',
+                        ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '4',
+                        ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '2',
+                        ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '6',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'High', '9',
+                                ifelse(det_cat == 'High' & survey_cat == 'Triennial', '6',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'Low', '3', NA)))))))) 
 
 #heat map approach 
-uneqCost_heat <- ggplot(effort_dat %>%  
+MRCost_heat <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup') & threshold == 'dec_big'), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   geom_line(col = 'grey') +
   geom_point(size = 2) +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
@@ -1481,7 +1496,7 @@ uneqCost_heat <- ggplot(effort_dat %>%
 #pups and adults
 plot2 <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup', 'Adult') & threshold == 'dec_big' & length == '20 yrs'), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   geom_line(col = 'grey') +
   geom_point(size = 2) +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
@@ -1498,9 +1513,9 @@ plot2 <- ggplot(effort_dat %>%
     scale_color_manual(values = rainbow2[-c(1,4)], name = '') +
   scale_y_continuous(limits = c(0.05, 1), breaks = c(0.25, 0.5, 0.75)) 
 
-eqEff_heat <- ggplot(effort_dat %>% 
+eqCost_heat <- ggplot(effort_dat %>% 
                     filter(variable == 'Pup' & threshold == 'dec_big'), 
-       aes(factor(step_eqEff), value, group = category, col = factor(step_eqEff))) +
+       aes(factor(step_eqCost), value, group = category, col = factor(step_eqCost))) +
   geom_line(col = 'grey') +
   geom_point(size = 2) +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
@@ -1521,13 +1536,13 @@ eqEff_heat <- ggplot(effort_dat %>%
 plot3 <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup', 'Adult') & threshold == 'dec_big' & 
                                  length == '20 yrs'), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   # geom_line(aes(col = 'Unequal costs')) +
   geom_line(col = 'grey', aes(linetype = 'Unequal cost')) +
   geom_point(size = 2, show.legend = F) +
   #add equal effort dat
-  geom_point(aes(factor(step_eqEff), value, group = category, col = factor(step_eqEff)), size = 2, shape = 17, show.legend = F) +
-  geom_line(aes(factor(step_eqEff), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
+  geom_point(aes(factor(step_eqCost), value, group = category, col = factor(step_eqCost)), size = 2, shape = 17, show.legend = F) +
+  geom_line(aes(factor(step_eqCost), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(variable~category+N) +
   xlab('Survey intensity (detection + marking frequency)') + 
@@ -1547,13 +1562,13 @@ plot3 <- ggplot(effort_dat %>%
 plot5 <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup') & 
                                  length == '20 yrs'), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   # geom_line(aes(col = 'Unequal costs')) +
   geom_line(col = 'grey', aes(linetype = 'Unequal cost')) +
   geom_point(size = 2, show.legend = F) +
   #add equal effort dat
-  geom_point(aes(factor(step_eqEff), value, group = category, col = factor(step_eqEff)), size = 2, shape = 17, show.legend = F) +
-  geom_line(aes(factor(step_eqEff), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
+  geom_point(aes(factor(step_eqCost), value, group = category, col = factor(step_eqCost)), size = 2, shape = 17, show.legend = F) +
+  geom_line(aes(factor(step_eqCost), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(threshold_name~category+N) +
   xlab('Survey intensity (detection + marking frequency)') + 
@@ -1572,13 +1587,13 @@ plot5 <- ggplot(effort_dat %>%
 #survey cost model by line type -- fixed N over study and threshold
 plot6 <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup') & N == 100), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   # geom_line(aes(col = 'Unequal costs')) +
   geom_line(col = 'grey', aes(linetype = 'Unequal cost')) +
   geom_point(size = 2, show.legend = F) +
   #add equal effort dat
-  geom_point(aes(factor(step_eqEff), value, group = category, col = factor(step_eqEff)), size = 2, shape = 17, show.legend = F) +
-  geom_line(aes(factor(step_eqEff), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
+  geom_point(aes(factor(step_eqCost), value, group = category, col = factor(step_eqCost)), size = 2, shape = 17, show.legend = F) +
+  geom_line(aes(factor(step_eqCost), value, group = category, linetype = 'Equal cost'), col = 'darkgrey') +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(threshold~category+length) +
   xlab('Survey intensity (detection + marking frequency)') + 
@@ -1597,13 +1612,13 @@ plot6 <- ggplot(effort_dat %>%
 #survey cost model by line type -- pup and adult fixed N over study length** my favorite
 plot4 <- ggplot(effort_dat %>%  
                         filter(variable %in% c('Pup', 'Adult') & N == 100 & threshold == 'dec_big'), 
-       aes(factor(step_uneqCost), value, group = category, col = factor(step_uneqCost))) +
+       aes(factor(step_uneqCost_MR), value, group = category, col = factor(step_uneqCost_MR))) +
   # geom_line(aes(col = 'Unequal costs')) +
   geom_line(col = 'grey', aes(linetype = 'Unequal additive cost')) +
   geom_point(size = 2, show.legend = F) +
   #add equal effort dat
-  geom_point(aes(factor(step_eqEff), value, group = category, col = factor(step_eqEff)), size = 2, shape = 17, show.legend = F) +
-  geom_line(aes(factor(step_eqEff), value, group = category, linetype = 'Equal additive cost'), col = 'darkgrey') +
+  geom_point(aes(factor(step_eqCost), value, group = category, col = factor(step_eqCost)), size = 2, shape = 17, show.legend = F) +
+  geom_line(aes(factor(step_eqCost), value, group = category, linetype = 'Equal additive cost'), col = 'darkgrey') +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
   facet_nested(variable~category+length) +
   xlab('Survey intensity (detection + marking frequency)') + 
@@ -1619,16 +1634,16 @@ plot4 <- ggplot(effort_dat %>%
   scale_linetype_manual(values = c('Unequal additive cost' = 'solid', 'Equal additive cost' = 'dashed'), name = 'Cost model') +
   scale_y_continuous(limits = c(0.05, 1), breaks = c(0.25, 0.5, 0.75)) 
 
-eqCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = eff_cat)) +
+eqCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = Eqeff_cat)) +
   geom_tile(data =  text_dat, 
             color = "white", lwd = 1.5) +
   # geom_tile(data = text_dat %>% filter(category == 'Baseline'),
   #           fill = 'slateblue4', color = "white", lwd = 1.5, show.legend = F) +
-  geom_text(aes(label = eff_cat), fontface = 'bold') +
+  geom_text(aes(label = Eqeff_cat), fontface = 'bold') +
   # geom_text(data = text_dat %>% filter(category == 'Baseline'),
   #           aes(label = step), show.legend = F) +
   # annotate('text', x = 1, y = 1, label = 'Baseline == 1', fontface = 'bold') +
-  ylab('Marking frequency') + xlab('Detection') + ggtitle('Equal additive costs') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Equal costs') +
   theme_bw() +
   theme(legend.position = 'none',
         legend.key.size = unit(0.35, "cm"),
@@ -1638,16 +1653,16 @@ eqCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = eff_cat)) +
         axis.title.y = element_text(vjust = 2)) +
   scale_fill_manual(values = c(rainbow2[-c(1,4)]), name = 'Relative monitoring effort')
 
-uneqCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = cost_cat)) +
+MRCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = MRcost_cat)) +
   geom_tile(data =  text_dat, 
             color = "white", lwd = 1.5) +
   # geom_tile(data = text_dat %>% filter(category == 'Baseline'),
   #           fill = 'slateblue4', color = "white", lwd = 1.5, show.legend = F) +
-  geom_text(aes(label = cost_cat), fontface = 'bold') +
+  geom_text(aes(label = MRcost_cat), fontface = 'bold') +
   # geom_text(data = text_dat %>% filter(category == 'Baseline'),
   #           aes(label = step), show.legend = F) +
   # annotate('text', x = 1, y = 1, label = 'Baseline == 1', fontface = 'bold') +
-  ylab('Marking frequency') + xlab('Detection') + ggtitle('Unequal additive costs') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher marking costs') +
   theme_bw() +
   theme(legend.position = 'none',
         legend.key.size = unit(0.35, "cm"),
@@ -1657,7 +1672,27 @@ uneqCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = cost_cat)) +
         axis.title.y = element_text(vjust = 2)) +
   scale_fill_manual(values = c(rainbow2[-c(1,4)]), name = 'Relative monitoring cost')
 
-grids <- plot_grid(eqCost_grid, uneqCost_grid, nrow = 2)
+DCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = Dcost_cat)) +
+  geom_tile(data =  text_dat, 
+            color = "white", lwd = 1.5) +
+  # geom_tile(data = text_dat %>% filter(category == 'Baseline'),
+  #           fill = 'slateblue4', color = "white", lwd = 1.5, show.legend = F) +
+  geom_text(aes(label = Dcost_cat), fontface = 'bold') +
+  # geom_text(data = text_dat %>% filter(category == 'Baseline'),
+  #           aes(label = step), show.legend = F) +
+  # annotate('text', x = 1, y = 1, label = 'Baseline == 1', fontface = 'bold') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher detection costs') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.key.size = unit(0.35, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.title.y = element_text(vjust = 2)) +
+  scale_fill_manual(values = c(rainbow2[-c(1,4)]), name = 'Relative monitoring cost')
+
+grids <- plot_grid(eqCost_grid, MRCost_grid, nrow = 2)
+grids <- plot_grid(MRCost_grid, DCost_grid, nrow = 2)
 
 
 effort_plot <- plot_grid(grids, plot4, labels = c('(a)', '(b)'), rel_widths = c(0.75, 1.1))
@@ -1686,6 +1721,434 @@ effort_plot <- plot_grid(grids, plot4, labels = c('(a)', '(b)'), rel_widths = c(
 
 ```
 
+```{r efficiency}
+
+#effort dat from above
+
+eff_dat <- effort_dat %>%
+  # filter(variable == 'Pup') %>%
+  # filter(threshold == 'dec_big') %>%
+  transform(det_cat2 = ifelse(step_eff_label == 'Baseline', '1', det_cat)) %>%
+  transform(survey_cat2 = ifelse(step_eff_label == 'Baseline', '1', survey_cat)) 
+  
+
+#value by "cost" - pups for large threshold for 10 and 20 yrs
+#now that the third "cost model" is added to effort_dat, these aren't quite right anymore
+# ggplot(eff_dat %>% filter(variable == 'Pup' & threshold == 'dec_big'), 
+#        aes(x = factor(step_uneqCost_MR), y = value, 
+#                     col = factor(N), size = factor(det_cat2), shape = factor(survey_cat2))) +
+#   geom_point() +
+#   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+#   xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+#   facet_grid(.~length) +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#         strip.background = element_rect(fill = "white", color = c("black", NA)),
+#         legend.text = element_text(size = 10, vjust = 0.5),
+#         axis.title.x = element_text(vjust = -1),
+#         axis.text.x = element_text(angle = 90, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#   scale_color_manual(values = rainbow2[-c(1,4)], name = '') +
+#   guides(size = guide_legend(title = 'Detection probability'),
+#          shape = guide_legend(title = 'Marking frequency'))
+  
+#all ages over study duration; favorite
+# ggplot(eff_dat %>% filter(threshold == 'dec_big'), 
+#        aes(x = factor(step_uneqCost_MR), y = value, 
+#                     col = factor(N), size = factor(det_cat2), shape = factor(survey_cat2))) +
+#   geom_point() +
+#   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+#   xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+#   facet_grid(variable~length) +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#         strip.background = element_rect(fill = "white", color = c("black", NA)),
+#         legend.text = element_text(size = 10, vjust = 0.5),
+#         axis.title.x = element_text(vjust = -1),
+#         axis.text.x = element_text(angle = 90, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#   scale_color_manual(values = rainbow2[-c(1,4)], name = 'Cohort size') +
+#   guides(size = guide_legend(title = 'Detection probability'),
+#          shape = guide_legend(title = 'Marking frequency'))
+
+##...want the above with facets for cost model
+dat_long <- eff_dat %>%
+  dplyr::select(N, length, threshold_name, det_cat2, survey_cat2, variable, step_eqCost, 
+                step_uneqCost_MR, step_uneqCost_d, value) %>%
+  reshape2::melt(id.vars = c('N', 'length', 'threshold_name', 'det_cat2', 'survey_cat2', 'variable', 'value')) 
+colnames(dat_long) <- c('N', 'length', 'threshold', 'det', 'mark', 'age', 'value', 'cost_mod', 'cost')
+dat_long$cost_mod <- factor(dat_long$cost_mod, 
+                            levels = c('step_eqCost', 'step_uneqCost_MR', 'step_uneqCost_d'),
+                            labels = c('Equal costs', 'Higher marking costs', 'Higher detection costs'))
+
+dat_long <- dat_long %>% 
+  transform(det = factor(det, labels = c('Low', 'Med', 'High'))) %>%
+  transform(mark = factor(mark, labels = c('Triennial', 'Biennial', 'Annual')))
+
+ggplot(dat_long %>% filter(threshold == 'Large difference' & length == '20 yrs'), 
+       aes(x = factor(cost), y = value, 
+                    col = factor(N), size = factor(det), shape = factor(mark))) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+  scale_color_manual(values = rainbow2[-c(1,4)], name = 'Cohort size') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'))
+
+#more here.... add third panel
+ggplot(dat_long %>% filter(threshold == 'Large difference' & length == '20 yrs'
+                           & age == 'Pup'), 
+       aes(x = factor(cost), y = value, 
+                    col = factor(N), size = factor(det), shape = factor(mark))) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+  scale_color_manual(values = rainbow2[-c(1,4)], name = 'Cohort size') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'))
+
+#just pups - color for cost model
+ggplot(dat_long %>% filter(threshold == 'Large difference' & length == '20 yrs'
+                           & age == 'Pup' & N == 100), 
+       aes(x = factor(cost), y = value, 
+                    col = factor(cost_mod), size = factor(det), shape = factor(mark))) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  # facet_grid(age~length) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+  scale_color_manual(values = rainbow2[-c(1,3,4)], name = 'Relative costs') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'))
+
+#color for cost model - favorite 1
+ggplot(dat_long %>% filter(threshold == 'Large difference'
+                           & age %in% c('Pup', 'Adult') & N == 100), 
+       aes(x = factor(cost), y = value, 
+                    col = factor(cost_mod), size = factor(det), shape = factor(mark))) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~length) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+  scale_color_manual(values = rainbow2[-c(1,3,4)], name = 'Relative costs') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'))
+
+#favorte 2; getting closer
+ggplot(dat_long %>% filter(threshold == 'Large difference' & cost_mod != 'Equal costs'
+                           & age %in% c('Pup', 'Adult') & length == '20 yrs'), 
+       aes(x = factor(cost), y = value, 
+                    col = factor(N), size = factor(det), shape = factor(mark))) +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.title = element_text(vjust = 0.8, size = 10)) +
+  scale_color_manual(values = rainbow2[-c(1,3,4)], name = 'Cohort size') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'))
+
+#grey scale
+plot_grey <- ggplot(dat_long %>% filter(threshold == 'Large difference' & cost_mod != 'Equal costs'
+                           & age %in% c('Pup', 'Adult') & length == '20 yrs'), 
+       aes(x = factor(cost), y = value, 
+                    factor(N),
+           fill = factor(N),
+           size = factor(det), shape = factor(mark)), col = 'black') +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        # legend.text.align = -10,
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, face = 'bold', size = 12,
+                                   colour = c(rainbow2[-c(1,4)])),
+        legend.title = element_text(vjust = 0.5, size = 10),
+        legend.box = 'vertical') +
+  # scale_color_manual(values = rainbow2[-c(1,3,4)], name = 'Cohort size') +
+  scale_color_manual(values = c('white', 'grey50', 'grey10'), name = 'Cohort size') +
+  scale_shape_manual(values = c(21,22,24)) +
+  scale_fill_manual(values = c('white', 'grey50', 'grey10'), name = 'Cohort size') +
+  guides(size = guide_legend(title = 'Detection probability'),
+         shape = guide_legend(title = 'Marking frequency'),
+         fill = guide_legend(override.aes = list(shape = 21)), nrow = 2) 
+
+cost_plot <- plot_grid(grids, plot_grey, labels = c('(a)', '(b)'), rel_widths = c(0.75, 1.1))
+
+
+
+#just N = 100
+# ggplot(eff_dat %>% filter(N == 100), 
+#        aes(x = factor(step_uneqCost_MR), y = value, 
+#                     col = factor(length), size = factor(det_cat2), shape = factor(survey_cat2))) +
+#   geom_point() +
+#   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+#   xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+#   facet_grid(variable~threshold) +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#         strip.background = element_rect(fill = "white", color = c("black", NA)),
+#         legend.text = element_text(size = 10, vjust = 0.5),
+#         axis.title.x = element_text(vjust = -1),
+#         axis.text.x = element_text(angle = 90, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#   scale_color_manual(values = rainbow2[-c(1,4)], name = 'Cohort size') +
+#   guides(size = guide_legend(title = 'Detection probability'),
+#          shape = guide_legend(title = 'Marking frequency'))
+# 
+# #all ages for 20 yr study over threshold
+# ggplot(eff_dat %>% filter(length == '20 yrs'), 
+#        aes(x = factor(step_uneqCost_MR), y = value, 
+#                     col = factor(N), size = factor(det_cat2), shape = factor(survey_cat2))) +
+#   geom_point() +
+#   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+#   xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+#   facet_grid(variable~threshold) +
+#   theme_bw() +
+#   theme(legend.position = 'top',
+#         strip.background = element_rect(fill = "white", color = c("black", NA)),
+#         legend.text = element_text(size = 10, vjust = 0.5),
+#         axis.title.x = element_text(vjust = -1),
+#         axis.text.x = element_text(angle = 90, vjust = 0.5),
+#         legend.title = element_text(vjust = 0.8, size = 10)) +
+#   scale_color_manual(values = rainbow2[-c(1,4)], name = '') +
+#   guides(size = guide_legend(title = 'Detection probability'),
+#          shape = guide_legend(title = 'Marking frequency'))
+         
+
+
+```
+
+```{r efficiency grid filled}
+
+text_dat <- cri_delta_steps %>%
+  distinct(category, det_cat, survey_cat, step) %>%
+  transform(inc = ifelse(det_cat == 2 & survey_cat == 3 | det_cat == 3 & survey_cat == 2, 'n', 'y')) %>%
+  # filter(inc == 'y') %>%
+  dplyr::select(-inc) %>%
+   transform(category = factor(category, levels = c('Baseline', 'Detection only', 
+                                 'Frequency only', 'Detection & frequency'),
+                              labels = c('Baseline', 'Detection only', 
+                                 'Marking frequency only', 'Detection & marking frequency'))) %>%
+  transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High'))) %>%
+  transform(det_cat = factor(det_cat, labels = c('Low', 'Medium', 'High')),
+            survey_cat = factor(survey_cat, labels = c('Triennial', 'Biennial', 'Annual'))) %>%
+  transform(Eqeff_cat = ifelse(step == 'Low', '1',
+                        ifelse(survey_cat == 'Annual' & det_cat == 'Medium', '5',
+                        ifelse(survey_cat == 'Biennial' & det_cat == 'High', '5', 
+                        ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '2',
+                        ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '2',
+                        ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '4',
+                        ifelse(survey_cat == 'Annual' & det_cat == 'High', '6',
+                        ifelse(det_cat == 'High' & survey_cat == 'Triennial', '3',
+                        ifelse(survey_cat == 'Annual' & det_cat == 'Low', '3', NA)))))))))) %>%
+  transform(MRcost_cat = ifelse(step == 'Low', '1',
+                        ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '2',
+                               ifelse(survey_cat == 'Annual' & det_cat == 'Medium', '8',
+                               ifelse(survey_cat == 'Biennial' & det_cat == 'High', '7',
+                        ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '4',
+                        ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '6',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'High', '9',
+                                ifelse(det_cat == 'High' & survey_cat == 'Triennial', '3',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'Low', '6', NA)))))))))) %>%
+  transform(Dcost_cat = ifelse(step == 'Low', '1',
+                        ifelse(survey_cat == 'Triennial' & det_cat == 'Medium', '4',
+                               ifelse(survey_cat == 'Annual' & det_cat == 'Medium', '7',
+                               ifelse(survey_cat == 'Biennial' & det_cat == 'High', '8',
+                        ifelse(det_cat == 'Low' & survey_cat == 'Biennial', '2',
+                        ifelse(survey_cat == 'Biennial' & det_cat == 'Medium', '6',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'High', '9',
+                                ifelse(det_cat == 'High' & survey_cat == 'Triennial', '6',
+                                ifelse(survey_cat == 'Annual' & det_cat == 'Low', '3', NA)))))))))) %>%
+  transform(MRcost_cat = ifelse(category == 'Detection & marking frequency' & det_cat == 'High' &
+                                 is.na(MRcost_cat), '7', 
+                               ifelse(category == 'Detection & marking frequency' & det_cat == 'Medium' &
+                                 is.na(MRcost_cat), '8', MRcost_cat))) %>%
+  transform(Dcost_cat = ifelse(category == 'Detection & marking frequency' & det_cat == 'High' &
+                                 is.na(Dcost_cat), '8', 
+                               ifelse(category == 'Detection & marking frequency' & det_cat == 'Medium' &
+                                 is.na(Dcost_cat), '7', Dcost_cat)))
+
+MRCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = MRcost_cat)) +
+  geom_tile(data =  text_dat, 
+            color = "white", lwd = 1.5) +
+  geom_text(aes(label = MRcost_cat), fontface = 'bold') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher marking costs') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.key.size = unit(0.35, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5),
+        axis.title.x = element_text(vjust = -1, size = 10),
+        axis.title.y = element_text(vjust = 2, size = 10),
+        plot.title = element_text(size = 12)) +
+    scale_fill_manual(values = c(rainbow4), name = 'Relative monitoring cost')
+
+DCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = Dcost_cat)) +
+  geom_tile(data =  text_dat, 
+            color = "white", lwd = 1.5) +
+  geom_text(aes(label = Dcost_cat), fontface = 'bold') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher detection costs') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.key.size = unit(0.35, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5),
+        axis.title.x = element_text(vjust = -1, size = 10),
+        axis.title.y = element_text(vjust = 2, size = 10),
+        plot.title = element_text(size = 12)) +
+  scale_fill_manual(values = c(rainbow4), name = 'Relative monitoring cost')
+
+grids <- plot_grid(MRCost_grid, DCost_grid, nrow = 2)
+
+effort_dat <- cri_delta_steps %>%
+  dplyr::select(category, N, length, threshold, step, value, variable, survey_cat, det_cat) %>%
+  bind_rows(scenario_fill_cri) %>%
+  filter(category != 'Baseline') %>%
+  transform(variable = factor(variable, levels = c('phiP', 'phi1', 'phi2', 'phiJ', 'phiA'),
+                              labels = c('Pup', 'Age-1', 'Age-2', 'Juvenile', 'Adult'))) %>%
+  transform(threshold_name = factor(threshold, levels = c('dec_little', 'dec_big'), 
+                                    labels = c('Small difference', 'Large difference'))) %>%
+  transform(category = factor(category, levels = c('Baseline', 'Detection only', 
+                                 'Frequency only', 'Detection & frequency'),
+                              labels = c('Baseline', 'Detection only', 
+                                 'Marking frequency only', 'Detection & marking frequency'))) %>%
+  transform(step = factor(step, levels = c(0,1,2), labels = c('Low', 'Medium', 'High'))) %>%
+  transform(step = ifelse(is.na(step) & category == 'Detection & marking frequency', 2, step)) %>%
+  transform(cat = ifelse(step == 'Low', 'Low', 'Other')) %>%
+  transform(value_2 = ifelse(cat == 'Other', 0, value)) %>%
+  transform(step_eqCost = ifelse(category == 'Detection & marking frequency' & survey_cat == 3, 6,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2, 4,
+                                       ifelse(category == 'Baseline', 1,
+                                       ifelse(category == 'Detection only', det_cat, 
+                                              ifelse(category == 'Marking frequency only', survey_cat, 100)))))) %>%
+  transform(step_eqCost = ifelse(is.na(step_eqCost), 1, step_eqCost)) %>%
+  #if marking is more costly
+  transform(step_uneqCost_MR = ifelse(category == 'Detection & marking frequency' & survey_cat == 3 &
+                                        det_cat == 3, 9,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2 &
+                                         det_cat == 2, 6,
+                                ifelse(category == 'Baseline', 1,
+                                ifelse(category == 'Detection only', det_cat, 
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2 & det_cat == 3, 7,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 3 & det_cat == 2, 8,
+                                ifelse(category == 'Marking frequency only', survey_cat*2, 100)))))))) %>%
+  transform(step_uneqCost_MR = ifelse(is.na(step_uneqCost_MR), 1, step_uneqCost_MR)) %>%
+  #if detection is more costly
+    transform(step_uneqCost_d = ifelse(category == 'Detection & marking frequency' & survey_cat == 3 &
+                                         det_cat == 3, 9,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2 &
+                                         det_cat == 2, 6,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 2 & det_cat == 3, 8,
+                                ifelse(category == 'Detection & marking frequency' & survey_cat == 3 & det_cat == 2, 7,
+                                       ifelse(category == 'Baseline', 1,
+                                       ifelse(category == 'Detection only', det_cat*2, 
+                                              ifelse(category == 'Marking frequency only', survey_cat, 100)))))))) %>%
+  transform(step_uneqCost_d = ifelse(is.na(step_uneqCost_d), 1, step_uneqCost_d)) %>%
+  transform(step_eff_label = factor(step_eqCost, levels = c(1, 2, 3, 4, 6), 
+                                    labels = c('Baseline', 'Low', 'Medium', 'High', 'Highest'))) %>%
+  transform(samp_size = 'Study duration & cohort size') %>%
+  transform(length = factor(length, labels = c('10 yrs', '20 yrs'))) %>%
+  filter(!is.na(step))
+
+
+eff_dat <- effort_dat %>%
+  # filter(variable == 'Pup') %>%
+  # filter(threshold == 'dec_big') %>%
+  transform(det_cat2 = ifelse(step_eff_label == 'Baseline', '1', det_cat)) %>%
+  transform(survey_cat2 = ifelse(step_eff_label == 'Baseline', '1', survey_cat)) 
+  
+
+##...want the above with facets for cost model
+dat_long <- eff_dat %>%
+  dplyr::select(N, length, threshold_name, det_cat2, survey_cat2, variable, step_eqCost, 
+                step_uneqCost_MR, step_uneqCost_d, value) %>%
+  reshape2::melt(id.vars = c('N', 'length', 'threshold_name', 'det_cat2', 'survey_cat2', 'variable', 'value')) 
+colnames(dat_long) <- c('N', 'length', 'threshold', 'det', 'mark', 'age', 'value', 'cost_mod', 'cost')
+
+dat_long <- dat_long %>% 
+  transform(det = factor(det, labels = c('Low', 'Med', 'High'))) %>%
+  transform(mark = factor(mark, labels = c('Triennial', 'Biennial', 'Annual'))) %>%
+  transform(cost_mod = factor(cost_mod, 
+                            levels = c('step_eqCost', 'step_uneqCost_MR', 'step_uneqCost_d'),
+                            labels = c('Equal costs', 'Higher marking costs', 'Higher detection costs')))
+
+
+#grey scale
+plot_grey <- ggplot(dat_long %>% filter(threshold == 'Large difference' & cost_mod != 'Equal costs'
+                           & age %in% c('Pup', 'Adult') & length == '20 yrs'), 
+       aes(x = factor(cost), y = value, 
+                    factor(det),
+           fill = factor(det),
+           size = factor(N), shape = factor(mark)), col = 'black') +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting difference in survival') +
+  facet_grid(age~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        legend.text = element_text(size = 10, vjust = 0.5),
+        # legend.text.align = -10,
+        axis.title.x = element_text(vjust = -1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, face = 'bold', size = 12,
+                                   colour = c(rainbow4)),
+        legend.title = element_text(vjust = 0.5, size = 11),
+        legend.box = 'vertical',
+        legend.spacing = unit(-0.15, "cm")) +
+  scale_color_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  scale_shape_manual(values = c(21,22,24)) +
+  scale_fill_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  guides(size = guide_legend(title = 'Cohort size', 
+                             override.aes = list(fill = 'white', shape = 21)),
+         shape = guide_legend(title = 'Marking frequency', override.aes = list(size = 2)),
+         fill = guide_legend(override.aes = list(shape = 21, size = 2)), nrow = 2) +
+  scale_x_discrete(breaks = c('1','2','3','4','5','6','7','8','9'),
+                   labels = c('1','2','3','4','5','6','7','8','9'), drop = F) +
+  scale_y_continuous(limits = c(0.3, 1.05), breaks = c(0.4, 0.6, 0.8, 1.0))
+
+cost_plot <- plot_grid(grids, plot_grey, labels = c('(a)', '(b)'), rel_widths = c(0.75, 1.1))
+
+```
 
 
 ```{r relative bias}

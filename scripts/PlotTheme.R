@@ -61,3 +61,6 @@ plot_theme_x90 <- function(...) {
 
 rainbow <- c("#363e7e", 'dodgerblue2', "#4aaaa5", "#a3d39c", "#f6b61c", "chocolate2", "red3", "violetred4")
 rainbow2 <- c("violetred4", "dodgerblue3", 'deepskyblue1', "#4aaaa5", "#a3d39c", "#f6b61c", "chocolate2", "red3")
+rainbow3 <- c("#363e7e", 'dodgerblue2', "deepskyblue1", "#a3d39c", "#f6b61c", "chocolate2", "red3", 'red4')
+rainbow4 <- c("royalblue4", 'dodgerblue3', "deepskyblue1", "#a3d39c", "#f6b61c", "darkorange1", "orangered2", 'firebrick')
+
