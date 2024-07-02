@@ -1640,7 +1640,7 @@ MRCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = MRcost_cat)) +
   annotate('text', x = c(1,1,1,2,3,2,3,2,3), y = c(1,2,3,1,1,2,2,3,3), 
            label = c('1', '4', '6', '2', '3',
                      '4+2=6', '4+3=7', '6+2=8', '6+3=9'), fontface = 'bold') +
-  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher marking costs') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Marking costs > detection costs (wDPS)') +
   theme_bw() +
   theme(legend.position = 'none',
         legend.key.size = unit(0.35, "cm"),
@@ -1675,7 +1675,7 @@ DCost_grid <- ggplot(text_dat, aes(det_cat, survey_cat, fill = Dcost_cat)) +
   annotate('text', x = c(1,1,1,2,3,2,3,2,3), y = c(1,2,3,1,1,2,2,3,3), 
            label = c('1', '2', '3', '4', '6',
                      '2+4=6', '2+6=8', '3+4=7', '3+6=9'), fontface = 'bold') +
-  ylab('Marking frequency') + xlab('Detection') + ggtitle('Higher detection costs') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Detection costs > marking costs (eDPS)') +
   theme_bw() +
   theme(legend.position = 'none',
         legend.key.size = unit(0.35, "cm"),
@@ -2156,7 +2156,9 @@ dat_long_both <- bind_rows(dat_long_cri %>% transform(type = 'cri') %>%
                              filter(threshold == 'Large difference'), 
                            dat_long_cv %>% transform(type = 'cv')) %>%
   transform(type = factor(type, levels = c('cri', 'cv'),
-                          labels = c('Detecting change in survival', 'CV <= 0.125')))
+                          labels = c('Detecting change in survival', 'CV <= 0.125'))) %>%
+  transform(cost_mod = factor(cost_mod, levels = c('Higher marking costs', 'Higher detection costs'),
+            labels = c('Marking costs > detection costs', 'Detection costs > marking costs')))
 
 plot_grey_both <- ggplot(dat_long_both %>% filter(cost_mod != 'Equal costs'
                            & age %in% c('Pup') & length == '20 yrs'), 
@@ -2166,7 +2168,7 @@ plot_grey_both <- ggplot(dat_long_both %>% filter(cost_mod != 'Equal costs'
            size = factor(N), shape = factor(mark)), col = 'black') +
   geom_point() +
   geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
-  xlab('Relative survey cost') + ylab('Probability of achieving metric for pup survival (20 yr study)') +
+  xlab('Relative survey cost') + ylab('Probability of achieving objective for pup survival (20 yr study)') +
   facet_grid(type~cost_mod) +
   theme_bw() +
   theme(legend.position = 'top',
@@ -2220,7 +2222,7 @@ plot_grey_cv_app <- ggplot(dat_long_cv %>% filter(cost_mod != 'Equal costs'),
          fill = guide_legend(override.aes = list(shape = 21, size = 2)), nrow = 2) +
   scale_x_discrete(breaks = c('1','2','3','4','5','6','7','8','9'),
                    labels = c('1','2','3','4','5','6','7','8','9'), drop = F) +
-  scale_y_continuous(limits = c(0.3, 1.1), breaks = c(0.4, 0.6, 0.8, 1.0))
+  scale_y_continuous(limits = c(-0.1, 1.2), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0))
 
 ```
 

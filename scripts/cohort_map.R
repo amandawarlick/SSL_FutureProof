@@ -7,6 +7,7 @@ library(rnaturalearth)
 library(rcartocolor)
 library (readxl)
 library(ggrepel)
+library(cowplot)
 
 theme_set(theme_minimal(base_size = 10,
                         base_family = "Arial"))
@@ -71,7 +72,7 @@ w_reg_labels <- tibble(
 
 w_map_labels <- tibble(
   label = c("Bering Sea","Gulf of Alaska"),
-  longitude = c(-179,-148), latitude = c(57,54)) |> 
+  longitude = c(-179,-152), latitude = c(57,50)) |> 
   st_as_sf(coords = c('longitude','latitude'), crs = 4326) |> 
   st_transform(3338)
 
@@ -122,7 +123,10 @@ wDPS_plot <- ggplot() +
        subtitle = "Western distinct population segment (DPS)") +
   theme(
     legend.position = "bottom",
+    legend.spacing.x = unit(0.25, 'cm'),
     legend.title = element_blank(),
+    legend.text.align = 0,
+    legend.text = element_text(margin = margin(l = -8)),
     axis.title = element_blank(),
     panel.border = element_rect(fill = NA, colour = 'grey')) +
   ggrepel::geom_text_repel(data = sam_pass,
@@ -206,8 +210,10 @@ eDPS_plot <- ggplot() +
        subtitle = "Eastern distinct population segment (DPS)") +
   theme(
     # legend.text.align = 10,
-    legend.spacing.x = unit(0.5, 'cm'),
+    legend.spacing.x = unit(0.3, 'cm'),
     legend.position = "bottom",
+    legend.text.align = 0,
+    legend.text = element_text(margin = margin(l = 0)),
     legend.title = element_blank(),
     panel.border = element_rect(fill = NA, colour = 'grey'),
     axis.title = element_blank()) 
