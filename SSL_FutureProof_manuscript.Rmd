@@ -646,6 +646,27 @@ cri_dot_big <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in
              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
 
+#presentation
+# cri_dot_big_pres <- 
+  ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in% c(10,20)
+                                & variable %in% c('Pup', 'Juvenile', 'Adult')
+                               &  threshold == 'dec_big' & detection %in% c('Low', 'High')),
+       aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
+      geom_line(col = 'grey70', linetype = 'solid', linewidth = 0.3) +
+  geom_point() + 
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Marking frequency') + ylab('Probability of detecting difference in survival') +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  pres_theme(legend.position = 'top',
+             # axis.title = element_text(size = 13),
+             # axis.text = element_text(size = 12),
+             # strip.text = element_text(size = 12)
+             ) +
+      scale_color_manual(values = rev(c('dodgerblue3', 'deepskyblue1', 'red3')), name = 'Age group')
+
 cri_dot_small <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in% c(10,20)
                                &  threshold == 'dec_little'),
        aes(x = factor(survey_freq), y = value, col = factor(variable), group = variable)) +
@@ -2223,6 +2244,122 @@ plot_grey_cv_app <- ggplot(dat_long_cv %>% filter(cost_mod != 'Equal costs'),
   scale_x_discrete(breaks = c('1','2','3','4','5','6','7','8','9'),
                    labels = c('1','2','3','4','5','6','7','8','9'), drop = F) +
   scale_y_continuous(limits = c(-0.1, 1.2), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0))
+
+##presentation plots
+# pres_plot_cost <- 
+  # ggplot(dat_long_both %>% filter(cost_mod != 'Equal costs'
+  #                          & age %in% c('Pup', 'Adult') & length == '20 yrs' &
+  #                            type == 'Detecting change in survival'), 
+  #      aes(x = factor(cost), y = value, 
+  #                   factor(det),
+  #          fill = factor(det),
+  #          size = factor(N), shape = factor(mark)), col = 'black') +
+  # geom_point() +
+  # geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  # xlab('Relative survey cost') + ylab('Probability of detecting change in survival') +
+  # facet_grid(age~cost_mod) +
+  # theme_bw() +
+  # theme(legend.position = 'top',
+  #       strip.background = element_rect(fill = "white", color = c("black", NA)),
+  #       legend.text = element_text(size = 10, vjust = 0.5),
+  #       # legend.text.align = -10,
+  #       axis.title.x = element_text(vjust = -1),
+  #       axis.text.x = element_text(angle = 90, vjust = 0.5, face = 'bold', size = 12,
+  #                                  colour = c(rainbow4)),
+  #       legend.title = element_text(vjust = 0.5, size = 11),
+  #       legend.box = 'vertical',
+  #       legend.spacing = unit(-0.15, "cm")) +
+  # scale_color_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  # scale_shape_manual(values = c(21,22,24)) +
+  # scale_fill_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  # guides(size = guide_legend(title = 'Cohort size', 
+  #                            override.aes = list(fill = 'white', shape = 21)),
+  #        shape = guide_legend(title = 'Marking frequency', override.aes = list(size = 2)),
+  #        fill = guide_legend(override.aes = list(shape = 21, size = 2)), nrow = 2) +
+  # scale_x_discrete(breaks = c('1','2','3','4','5','6','7','8','9'),
+  #                  labels = c('1','2','3','4','5','6','7','8','9'), drop = F) +
+  # scale_y_continuous(limits = c(0.3, 1.05), breaks = c(0.4, 0.6, 0.8, 1.0))
+  
+#just pups
+pres_plot_cost <- 
+  ggplot(dat_long_both %>% filter(cost_mod != 'Equal costs' & length == '20 yrs' 
+                           & age %in% c('Pup') & type == 'Detecting change in survival'), 
+       aes(x = factor(cost), y = value, 
+                    factor(det),
+           fill = factor(det),
+           size = factor(N), shape = factor(mark)), col = 'black') +
+  geom_point() +
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Relative survey cost') + ylab('Probability of detecting change in pup survival') +
+  facet_grid(.~cost_mod) +
+  theme_bw() +
+  theme(legend.position = 'top',
+        strip.background = element_rect(fill = "white", color = c("black", NA)),
+        strip.text = element_text(size = 11),
+        legend.text = element_text(size = 10.5, vjust = 0.5),
+        # legend.text.align = -10,
+        axis.title.x = element_text(vjust = -1, size = 13),
+        axis.title.y = element_text(size = 13),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, face = 'bold', size = 13,
+                                   colour = c(rainbow4)),
+        axis.text.y = element_text(size = 13),
+        legend.title = element_text(vjust = 0.5, size = 11),
+        legend.box = 'vertical',
+        legend.spacing = unit(-0.15, "cm")) +
+  scale_color_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  scale_shape_manual(values = c(21,22,24)) +
+  scale_fill_manual(values = c('white', 'grey50', 'grey10'), name = 'Detection probability') +
+  guides(size = guide_legend(title = 'Cohort size', 
+                             override.aes = list(fill = 'white', shape = 21)),
+         shape = guide_legend(title = 'Marking frequency', override.aes = list(size = 2)),
+         fill = guide_legend(override.aes = list(shape = 21, size = 2)), nrow = 2) +
+  scale_x_discrete(breaks = c('1','2','3','4','5','6','7','8','9'),
+                   labels = c('1','2','3','4','5','6','7','8','9'), drop = F) +
+  scale_y_continuous(limits = c(0.3, 1.05), breaks = c(0.4, 0.6, 0.8, 1.0))
+
+#bigger text cost grids
+MRCost_grid_pres <- ggplot(text_dat, aes(det_cat, survey_cat, fill = MRcost_cat)) +
+  geom_tile(data =  text_dat, 
+            color = "white", lwd = 1.5) +
+  # geom_text(data = text_dat_math, aes(label = MRcost_cat), fontface = 'bold') +
+  annotate('text', x = c(1,1,1,2,3,2,3,2,3), y = c(1,2,3,1,1,2,2,3,3), 
+           label = c('1', '4', '6', '2', '3',
+                     '4+2=6', '4+3=7', '6+2=8', '6+3=9'), fontface = 'bold') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Marking costs > detection costs (wDPS)') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.key.size = unit(0.35, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5, size = 11),
+        axis.text.x = element_text(size = 11),
+        axis.title.x = element_text(vjust = -1, size = 12),
+        axis.title.y = element_text(vjust = 2, size = 12),
+        plot.title = element_text(size = 14)) +
+    scale_fill_manual(values = c(rainbow4), name = 'Relative monitoring cost')
+
+DCost_grid_pres <- ggplot(text_dat, aes(det_cat, survey_cat, fill = Dcost_cat)) +
+  geom_tile(data =  text_dat, 
+            color = "white", lwd = 1.5) +
+  # geom_text(aes(label = Dcost_cat), fontface = 'bold') +
+  annotate('text', x = c(1,1,1,2,3,2,3,2,3), y = c(1,2,3,1,1,2,2,3,3), 
+           label = c('1', '2', '3', '4', '6',
+                     '2+4=6', '2+6=8', '3+4=7', '3+6=9'), fontface = 'bold') +
+  ylab('Marking frequency') + xlab('Detection') + ggtitle('Detection costs > marking costs (eDPS)') +
+  theme_bw() +
+  theme(legend.position = 'none',
+        legend.key.size = unit(0.35, "cm"),
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(angle = 90, hjust = 0.5, size = 11),
+        axis.text.x = element_text(size = 11),
+        axis.title.x = element_text(vjust = -1, size = 12),
+        axis.title.y = element_text(vjust = 2, size = 12),
+        plot.title = element_text(size = 14)) +
+  scale_fill_manual(values = c(rainbow4), name = 'Relative monitoring cost')
+
+
+# grids <- plot_grid(MRCost_grid_pres, DCost_grid_pres, nrow = 2)
+grids_hor <- plot_grid(MRCost_grid_pres, DCost_grid_pres, nrow = 1, labels = c('(a)', '(b)'))
+
 
 ```
 
