@@ -342,6 +342,23 @@ cv_thresh_dot <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200)),
              plot.subtitle = element_text(size = 10, hjust = 0.5, vjust = 1)) +
   scale_color_manual(values = rev(rainbow2[-c(1,4,6)]), name = 'Age group')
 
+#presentation plot
+cv_thresh_dot_pres <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & 
+                                    detection %in% c('Low', 'High') &
+                                      variable %in% c('Pup', 'Juvenile', 'Adult')),
+       aes(x = survey_freq, y = value_cat, col = factor(variable), group = variable)) +
+      geom_line(col = 'grey70', linetype = 'solid', linewidth = 0.3) +
+  geom_point() + 
+  geom_hline(aes(yintercept = 0.75), linetype = 'dotted') +
+  xlab('Marking frequency') + ylab(expression('Probability of CV <= 0.125')) +
+  facet_nested(det + detection ~ samp_size + length + N, drop = T,
+             labeller = labeller(survey_freq = freq_labels, length = occ_labels),
+             scales = 'free_x') +
+  theme_bw() +
+  pres_theme(legend.position = 'top',
+             axis.title.x = element_text(vjust = -1)) +
+  scale_color_manual(values = c('red3', 'deepskyblue1', 'dodgerblue3'), name = 'Age group')
+
 ###appendix figures -- none unless want all sample sizes shown
 
 ##continuous cv
@@ -661,9 +678,7 @@ cri_dot_big <- ggplot(dotplot_dat %>% filter(N %in% c(50, 100, 200) & length %in
              scales = 'free_x') +
   theme_bw() +
   pres_theme(legend.position = 'top',
-             # axis.title = element_text(size = 13),
-             # axis.text = element_text(size = 12),
-             # strip.text = element_text(size = 12)
+                 axis.title.x = element_text(vjust = -1),
              ) +
       scale_color_manual(values = rev(c('dodgerblue3', 'deepskyblue1', 'red3')), name = 'Age group')
 
