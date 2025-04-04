@@ -428,11 +428,6 @@ SSL_CJS <- nimbleCode({
       logit(phi9[i,t]) <- mu.A + epsA[t]
       logit(phiA[i,t]) <- mu.A + epsA[t]
     } #t 
-    
-    # for (t in 11:(n.occasions-1)) {  
-    #   logit(phiA[i,t]) <- mu.A + epsA[t]
-    # } #t 
-    
   } #ind
 
     
@@ -520,6 +515,11 @@ SSL_CJS <- nimbleCode({
     
 
     #likelihood
+    #note: this model is parameterized as a multi-state model estimated using a categorical distribution
+    #this multi-state parameterization is identical to a single-state CJS model with an effect of 
+    #age, which is how it is described in the accompanying manuscript (Warlick et al. 2025). In this
+    #instance, a bernoulli distribution can be thought of as a categorical outcome with just 
+    #two categories.
 for (i in 1:n_ind) { #females
     z[i, f[i]:f[i]] <- 1 #pups at first capture
 
@@ -608,17 +608,19 @@ cv[s,] <- c(sd(out_mat[,'mean.phiP'])/summary(out[,"mean.phiP"])$q["50%"],
             sd(out_mat[,'mean.phiA'])/summary(out[,"mean.phiA"])$q["50%"])
 colnames(cv) <- phi.pars.names
 
-#rmse: sqrt(mean(theta.iter-T)^2)
-rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
-              sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
-              sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
-              sqrt(mean((out_mat[,'int.phiJ']-out_true[s,4])^2)),
-              sqrt(mean((out_mat[,'int.phiA']-out_true[s,5])^2)),
-              sqrt(mean((out_mat[,'int.p1']-out_true[s,6])^2)),
-              sqrt(mean((out_mat[,'int.p2']-out_true[s,7])^2)),
-              sqrt(mean((out_mat[,'int.pJ']-out_true[s,8])^2)),
-              sqrt(mean((out_mat[,'int.pA']-out_true[s,9])^2)))
-colnames(rmse) <- c(phi.pars.names, p.pars.names)
+#rmse: used this, which more measures precision over the MCMC chain; calculate from RB instead
+# (theta.iter-T)^2 here, then mean over k and sqrt in processing
+# rmse[s,] <- c(sqrt(mean((out_mat[,'int.phiP']-out_true[s,1])^2)),
+#               sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
+#               sqrt(mean((out_mat[,'int.phi1']-out_true[s,2])^2)),
+#               sqrt(mean((out_mat[,'int.phi2']-out_true[s,3])^2)),
+#               sqrt(mean((out_mat[,'int.phiJ']-out_true[s,4])^2)),
+#               sqrt(mean((out_mat[,'int.phiA']-out_true[s,5])^2)),
+#               sqrt(mean((out_mat[,'int.p1']-out_true[s,6])^2)),
+#               sqrt(mean((out_mat[,'int.p2']-out_true[s,7])^2)),
+#               sqrt(mean((out_mat[,'int.pJ']-out_true[s,8])^2)),
+#               sqrt(mean((out_mat[,'int.pA']-out_true[s,9])^2)))
+# colnames(rmse) <- c(phi.pars.names, p.pars.names)
 
 #detecting departure from baseline phi
 cri_pars <- c('int.phiP', 'int.phi1', 'int.phi2', 'int.phiJ', 'int.phiA')
@@ -657,8 +659,8 @@ saveRDS(out_median, file = here::here('results', 'simpleAge', 'sims',
                                       paste('S.', scenario,  '_median', batch, '.rds', sep = '')))
 saveRDS(cv, file = here::here('results', 'simpleAge', 'sims', 
                                       paste('S.', scenario,  '_cv', batch, '.rds', sep = '')))
-saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',  
-                                      paste('S.', scenario,  '_rmse', batch, '.rds', sep = '')))
+# saveRDS(rmse, file = here::here('results', 'simpleAge', 'sims',  
+#                                       paste('S.', scenario,  '_rmse', batch, '.rds', sep = '')))
 
 #odd-numbered batches
 saveRDS(dec_little10, file = here::here('results', 'simpleAge', 'sims',

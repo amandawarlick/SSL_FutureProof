@@ -9,7 +9,7 @@ library (readxl)
 library(ggrepel)
 library(cowplot)
 
-theme_set(theme_minimal(base_size = 10,
+theme_set(theme_minimal(base_size = 12,
                         base_family = "Arial"))
 
 theme_update(
@@ -66,13 +66,13 @@ sam_pass <- tibble(label = "Samalga Pass",
 w_reg_labels <- tibble(
   label = c("W ALEU", "C ALEU", "E ALEU", "W GULF", "C GULF", "E GULF"),
   longitude = c(-185, -176, -166, -158, -151, -147),
-  latitude = c(53.5, 53, 52.9, 54.2, 57, 59)) |> 
+  latitude = c(54.3, 53, 52.9, 54.2, 56.3, 59)) |> 
   st_as_sf(coords = c('longitude','latitude'), crs = 4326) |> 
   st_transform(3338)
 
 w_map_labels <- tibble(
   label = c("Bering Sea","Gulf of Alaska"),
-  longitude = c(-179,-152), latitude = c(57,50)) |> 
+  longitude = c(-179,-152), latitude = c(58,50)) |> 
   st_as_sf(coords = c('longitude','latitude'), crs = 4326) |> 
   st_transform(3338)
 
@@ -103,7 +103,7 @@ wssl_sf <-  sf::st_as_sf(wssl.sites, coords = c('Longitude', 'Latitude'),
 
 wDPS_plot <- ggplot() +
   geom_sf(data = alaska_base, fill = "gray50", color = NA) +
-  geom_sf_text(data = alaska_base, aes(label = 'Alaska'), size = 3) +
+  geom_sf_text(data = alaska_base, aes(label = 'Alaska'), size = 4) +
   geom_sf(data = canada_base, fill = "gray65", color = NA) +
   geom_sf(data = russia_base, fill = "gray65", color = NA) +
   geom_sf(data = wssl_sf %>% filter(), 
@@ -114,7 +114,7 @@ wDPS_plot <- ggplot() +
     data = w_map_labels,
     aes(label = label), color = "gray70",
     fontface = 'italic') +
-  geom_sf_text(data = w_reg_labels, aes(label = label), color = "gray5", size = 2) +
+  geom_sf_text(data = w_reg_labels, aes(label = label), color = "gray5", size = 3) +
   coord_sf(xlim = c(-2.25e+06, 0.7e+06),
           ylim = c(-0.3e+06, 2e+06), expand = FALSE) +
   scale_x_continuous(breaks = c(180, -170, -160, -150, -140)) +
@@ -123,19 +123,21 @@ wDPS_plot <- ggplot() +
        subtitle = "Western distinct population segment (DPS)") +
   theme(
     legend.position = "bottom",
-    legend.spacing.x = unit(0.25, 'cm'),
+    legend.spacing.x = unit(1.5, 'cm'),
+    plot.title.position = 'panel',
     legend.title = element_blank(),
     legend.text.align = 0,
-    legend.text = element_text(margin = margin(l = -8)),
+    legend.text = element_text(margin = margin(l = -2), size = 11),
+    plot.title = element_text(size = 14, hjust = 0.5),
     axis.title = element_blank(),
     panel.border = element_rect(fill = NA, colour = 'grey')) +
   ggrepel::geom_text_repel(data = sam_pass,
     mapping = aes(label = label, geometry = geometry,
-                  hjust = hjust, vjust = vjust),
-    nudge_x = c(100000,rep(0,6)),
-    nudge_y = c(-200000,0,-300000,0,0,0),
+                  hjust = hjust, vjust = vjust, size = 4),
+    nudge_x = c(-100000,rep(0,6)),
+    nudge_y = c(-260000,0,-300000,0,0,0),
     stat = "sf_coordinates",
-    min.segment.length = 0,size = 2.7,
+    min.segment.length = 0, size = 3.5,
     box.padding = 0.5, fontface = 'italic',
     color = "gray50")
 
@@ -183,11 +185,11 @@ eDPS_plot <- ggplot() +
   geom_sf(data = us_base, fill = "gray65", color = NA) +
   geom_sf(data = canada_base, fill = "gray50", color = NA) +
   geom_sf(data = california_base, fill = "gray50", color = NA) +
-  geom_sf_text(data = california_base, aes(label = 'California'), size = 3) +
+  geom_sf_text(data = california_base, aes(label = 'California'), size = 4) +
   geom_sf(data = oregon_base, fill = "gray50", color = NA) +
-  geom_sf_text(data = oregon_base, aes(label = 'Oregon'), size = 3) +
+  geom_sf_text(data = oregon_base, aes(label = 'Oregon'), size = 4) +
   geom_sf(data = washington_base, fill = "gray50", color = NA) +
-  geom_sf_text(data = washington_base, aes(label = 'Washington'), size = 3) +
+  geom_sf_text(data = washington_base, aes(label = 'Washington'), size = 4) +
   geom_sf(data = essl_sf, 
           aes(fill = as.factor(essl.sites$Region)),
           size = 3, shape = 21, color = 'black') +
@@ -207,13 +209,15 @@ eDPS_plot <- ggplot() +
   scale_y_continuous(breaks = c(35, 40, 45, 50)) +
   guides(fill = guide_legend(nrow = 1, label.hjust = 1)) + #hjust seems to be doing nothing
   labs(title = " ",
-       subtitle = "Eastern distinct population segment (DPS)") +
+       subtitle = "Eastern distinct population segment (DPS)", size = 14) +
   theme(
     # legend.text.align = 10,
     legend.spacing.x = unit(0.3, 'cm'),
     legend.position = "bottom",
     legend.text.align = 0,
-    legend.text = element_text(margin = margin(l = 0)),
+    plot.title.position = 'panel',
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.text = element_text(margin = margin(l = 0), size = 11),
     legend.title = element_blank(),
     panel.border = element_rect(fill = NA, colour = 'grey'),
     axis.title = element_blank()) 
